@@ -46,6 +46,9 @@ Explanation: <short explanation>
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
+@app.route("/quiz", methods=["POST"])
+def quiz_endpoint():
+    return start_quiz()
 
 @app.route("/quiz", methods=["POST"])
 def start_quiz():

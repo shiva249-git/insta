@@ -12,7 +12,6 @@ client = OpenAI(api_key=api_key)
 # Store active quiz sessions in memory
 sessions = {}
 
-
 def generate_ssc_question(topic):
     """Ask GPT-4 to generate an SSC CGL MCQ."""
     prompt = f"""
@@ -44,10 +43,17 @@ Explanation: <short explanation>
 
     return completion.choices[0].message.content
 
+@app.route("/", methods=["GET"])
+def home():
+    return render_template("index.html")
+
+@app.route("/quiz", methods=["POST"])
 def start_quiz():
+    data = request.get_json()
     topic = data.get("topic", "General Knowledge")
 
     question_text = generate_ssc_question(topic)
+
     # Parse the AI response
     lines = question_text.strip().split("\n")
     question_line = lines[0]
@@ -90,32 +96,7 @@ def check_answer():
     correct_answer = sessions[session_id]["answer"]
     explanation = sessions[session_id]["explanation"]
 
-    sessions.pop(session_id)
-
-    if user_answer == correct_answer:
-        return jsonify({
-            "result": "correct",
-            "explanation": explanation
-        })
-
-    data = request.get_json()
-@app.route("/", methods=["GET"])
-def home():
-    return render_template("index.html")
-
-@app.route("/answer", methods=["POST"])
-def check_answer():
-    data = request.get_json()
-    session_id = data.get("session_id")
-    user_answer = data.get("answer", "").strip().upper()
-
-    if session_id not in sessions:
-        return jsonify({"error": "Invalid or expired session_id."}), 400
-
-    correct_answer = sessions[session_id]["answer"]
-    explanation = sessions[session_id]["explanation"]
-
-    # Clean up session after answer
+    # Remove session after answer checked
     sessions.pop(session_id)
 
     if user_answer == correct_answer:
@@ -130,10 +111,6 @@ def check_answer():
             "explanation": explanation
         })
 
-
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-
     app.run(host="0.0.0.0", port=port)
-

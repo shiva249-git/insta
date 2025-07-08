@@ -52,25 +52,71 @@ function getQuiz() {
       }
 
       document.getElementById("questionArea").style.display = "block";
+    .catch(err => {
+
+      console.error(err);
+
+      alert("Could not load quiz question.");
+    })
+
+    .finally(() => {
+
+      document.getElementById("loading").style.display = "none";
+    });
+
+}
+
+
+function submitAnswer() {
+  if (!selectedAnswer) {
+    alert("Please select an answer!");
+    return;
+
+  }
+
+
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("result").innerText = "";
+
+
+  fetch("/answer", {
+
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+
+      session_id: sessionId,
+      answer: selectedAnswer
+    })
+  })
+
+    .then(res => {
+      if (!res.ok) throw new Error("Server error");
+      return res.json();
+
+    })
+    .then(data => {
+      let resultHtml;
+      if (data.result === "correct") {
+        resultHtml = `<span class="text-success">✅ Correct! ${data.explanation}</span>`;
+      } else {
+
+        resultHtml = `<span class="text-danger">❌ Wrong. Correct answer is ${data.correct_answer}. ${data.explanation}</span>`;
+      }
+      document.getElementById("result").innerHTML = resultHtml;
+
+      // Clear selection for next quiz
+      document.querySelectorAll('input[name="answer"]').forEach(radio => {
+        radio.checked = false;
+      });
+      selectedAnswer = null;
     })
     .catch(err => {
       console.error(err);
-      alert("Could not load quiz question.");
+      alert("Could not submit your answer.");
     })
     .finally(() => {
       document.getElementById("loading").style.display = "none";
     });
 }
 
-function submitAnswer() {
-  if (!selectedAnswer) {
-    alert("Please select an answer!");
-    return;
-  }
-
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("result").innerText = "";
-
-  fetch("/answer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },

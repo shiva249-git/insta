@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSC CGL Practice Quiz</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(120deg, #2b5876, #4e4376);
+      color: #fff;
+      font-family: "Segoe UI", sans-serif;
+      min-height: 100vh;
+      padding: 30px;
+    }
+
+    .quiz-container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      max-width: 700px;
+      margin: auto;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    h2 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      background: rgba(255, 255, 255, 0.3);
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"]::placeholder {
+      color: #eee;
+    }
+
+    button {
+      background-color: #f9d342;
+      color: #333;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #f7c600;
+    }
+
+    .result {
+      font-weight: bold;
+
+      font-size: 18px;
+
+    }
+
+    #loading {
+
+      margin-top: 15px;
+
+      font-style: italic;
+      color: #ffd;
+    }
+  </style>
+
+</head>
+<body>
+  <div class="quiz-container">
+
+    <h2>🚀 SSC CGL Practice Quiz</h2>
+
+    <label for="topic">Enter Topic:</label>
+
+    <input type="text" id="topic" placeholder="e.g. Geometry">
+
+
+    <button onclick="getQuiz()">Get Question</button>
+
+
+    <div id="loading" style="display:none;">Loading...</div>
+
+    <div class="question mt-4" id="questionArea" style="display: none;">
+      <h4 id="questionText"></h4>
+
+      <div id="options" class="mb-3"></div>
+      <button class="btn btn-success" onclick="submitAnswer()">Submit Answer</button>
+    </div>
+
+
+    <div id="result" class="result"></div>
+  </div>
+
+
+  <script>
+    let sessionId = null;
+    let selectedAnswer = null;
+
+    function getQuiz() {
+      const topic = document.getElementById("topic").value.trim();
+      if (!topic) {
+        alert("Please enter a topic!");
+        return;
+      }
+
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("questionArea").style.display = "none";
+      document.getElementById("result").innerText = "";
+
+      fetch("/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+      })
+      .then(data => {
+        sessionId = data.session_id;
+        document.getElementById("questionText").innerText = data.question;
+        const optionsDiv = document.getElementById("options");
+        optionsDiv.innerHTML = "";
+
+        for (const [key, value] of Object.entries(data.options)) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "form-check";
+
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.className = "form-check-input";
+          radio.name = "answer";
+          radio.value = key;
+          radio.id = `option_${key}`;
+        headers: { "Content-Type": "application/json" },
+          radio.onclick = () => selectedAnswer = key;
+        method: "POST",
+
+          const label = document.createElement("label");
+          label.className = "form-check-label";
+          label.setAttribute("for", `option_${key}`);
+        body: JSON.stringify({
+          session_id: sessionId,
+          resultHtml = `<span class="text-danger">❌ Wrong. Correct answer is ${data.correct_answer}. ${data.explanation}</span>`;
+        document.querySelectorAll('input[name="answer"]').forEach(r => r.checked = false);
+        selectedAnswer = null;
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Could not submit your answer.");
+      })
+      .finally(() => {
+        document.getElementById("loading").style.display = "none";
+      });
+    }
+  </script>
+</body>
+</html>     

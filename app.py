@@ -12,6 +12,7 @@ client = OpenAI(api_key=api_key)
 # In-memory store for active quiz sessions
 sessions = {}
 
+
 def generate_ssc_question(topic):
     """Ask GPT-4 to generate an SSC CGL MCQ."""
     prompt = f"""
@@ -44,23 +45,19 @@ Explanation: <short explanation>
 
     return completion.choices[0].message.content
 
+
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
 
-
 @app.route("/quiz", methods=["POST"])
 def start_quiz():
-
     try:
         data = request.get_json()
         topic = data.get("topic", "General Knowledge")
 
-
         question_text = generate_ssc_question(topic)
-
-        print("AI response:\n", question_text)  # DEBUG print
-
+        print("AI response:\n", question_text)  # Debug print
 
         lines = question_text.strip().split("\n")
         question_line = lines[0]
@@ -69,49 +66,44 @@ def start_quiz():
         answer_line = next((l for l in lines if l.startswith("Answer:")), "")
         explanation_line = next((l for l in lines if l.startswith("Explanation:")), "")
 
-
         question = question_line.replace("Question: ", "").strip()
 
         options = {}
-
         for line in options_lines:
             if ") " in line:
-
                 key, val = line.split(") ", 1)
                 options[key.strip()] = val.strip()
 
-
-        answer = answer_line.replace("Answer: ", "").strip()
-        explanation = explanation_line.replace("Explanation: ", "").strip()
-
+        raw_answer = answer_line.replace("Answer: ", "").strip()
+        if ") " in raw_answer:
+            answer_letter, _ = raw_answer.split(") ", 1)
+        else:
+            answer_letter = raw_answer
+        answer = answer_letter.strip()
 
         if answer not in options:
-            raise ValueError(f"Invalid answer option: '{answer}'")
+            raise ValueError(f"Invalid answer option: '{raw_answer}'")
+
+        explanation = explanation_line.replace("Explanation: ", "").strip()
 
         session_id = str(uuid.uuid4())
-
         sessions[session_id] = {
-
             "answer": answer,
             "explanation": explanation
-
         }
-
 
         return jsonify({
             "question": question,
             "options": options,
-
             "session_id": session_id,
             "message": "Reply with A, B, C or D."
         })
-
 
     except Exception as e:
         print("Error in /quiz:", e)
         return jsonify({"error": "Internal server error occurred. Check logs."}), 500
 
-@app.route("/answer", methods=["POST"])
+
 def check_answer():
     try:
         data = request.get_json()
@@ -142,6 +134,7 @@ def check_answer():
     except Exception as e:
         print("Error in /answer:", e)
         return jsonify({"error": "Internal server error occurred. Check logs."}), 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

@@ -2,12 +2,36 @@ import os
 import uuid
 from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_sqlalchemy import SQLAlchemy
+
 
 app = Flask(__name__)
 
+app.config["SECRET_KEY"] = "your-secret-key"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///quiz_app.db"
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 # Initialize OpenAI client
 api_key = os.environ.get("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
+
+if api_key:
+    client = OpenAI(api_key=api_key)
+else:
+    client = None
 
 # In-memory store for active quiz sessions
 sessions = {}
@@ -83,6 +107,42 @@ Explanation: <brief explanation>
 def home():
     return render_template("index.html")
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        hashed_pw = generate_password_hash(password)
+        new_user = User(username=username, password_hash=hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+
+        return "User registered!"
+
+    return render_template("register.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+            return "Logged in successfully!"
+        else:
+            return "Invalid credentials."
+
+    return render_template("login.html")
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
 @app.route("/quiz", methods=["POST"])
 def start_quiz():
     try:
@@ -139,6 +199,8 @@ def check_answer():
     except Exception as e:
         print("❌ Error in /answer:", e)
         return jsonify({"error": "Internal server error occurred. Check logs."}), 500
+
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

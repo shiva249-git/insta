@@ -9,26 +9,29 @@ app = Flask(__name__)
 api_key = os.environ.get("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
-# Store active quiz sessions in memory
+# In-memory store for active quiz sessions
 sessions = {}
+
 
 def generate_ssc_question(topic):
     """Ask GPT-4 to generate an SSC CGL MCQ."""
+
     prompt = f"""
 Generate one SSC CGL multiple choice question on the topic "{topic}".
-Provide:
-- The question
-- Four options (A, B, C, D)
-- The correct answer letter
-- A brief explanation
+Steps:
+1. Create the question.
+2. Generate four unique options, labeled A, B, C, D.
+3. Choose the correct answer letter from those four options.
+4. Provide a short explanation.
 
 Format your response exactly like this:
+
 Question: <question text>
 A) <option A>
 B) <option B>
 C) <option C>
 D) <option D>
-Answer: <correct option letter>
+Answer: <one of A/B/C/D>
 Explanation: <short explanation>
 """
 
@@ -43,12 +46,11 @@ Explanation: <short explanation>
 
     return completion.choices[0].message.content
 
+
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html")
-@app.route("/quiz", methods=["POST"])
-def quiz_endpoint():
-    return start_quiz()
+
 
 @app.route("/quiz", methods=["POST"])
 def start_quiz():
@@ -65,6 +67,7 @@ def start_quiz():
     explanation_line = next((l for l in lines if l.startswith("Explanation:")), "")
 
     question = question_line.replace("Question: ", "").strip()
+
     options = {}
     for line in options_lines:
         if ") " in line:
@@ -73,6 +76,12 @@ def start_quiz():
 
     answer = answer_line.replace("Answer: ", "").strip()
     explanation = explanation_line.replace("Explanation: ", "").strip()
+
+    # ✅ NEW: Validate that answer letter exists in options
+    if answer not in options:
+        return jsonify({
+            "error": f"AI generated an invalid answer option: '{answer}'. Please try again."
+        }), 500
 
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
@@ -87,6 +96,7 @@ def start_quiz():
         "message": "Reply with A, B, C or D."
     })
 
+
 @app.route("/answer", methods=["POST"])
 def check_answer():
     data = request.get_json()
@@ -99,7 +109,7 @@ def check_answer():
     correct_answer = sessions[session_id]["answer"]
     explanation = sessions[session_id]["explanation"]
 
-    # Remove session after answer checked
+    # Clean up session after answer
     sessions.pop(session_id)
 
     if user_answer == correct_answer:
@@ -113,6 +123,7 @@ def check_answer():
             "correct_answer": correct_answer,
             "explanation": explanation
         })
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

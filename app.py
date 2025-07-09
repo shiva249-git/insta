@@ -144,6 +144,12 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
 
+@app.route("/quiz", methods=["GET"])
+@login_required
+def quiz():
+    return render_template("quiz.html")
+
+
 @app.route("/quiz", methods=["POST"])
 @login_required
 def start_quiz():

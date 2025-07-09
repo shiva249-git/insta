@@ -1,4 +1,5 @@
-Flask==2.3.2
-flask-cors==3.0.10
-openai==1.93.1
-gunicorn==20.1.0
+Flask
+Flask-Login
+Flask-SQLAlchemy
+openai
+gunicorn

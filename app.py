@@ -1,10 +1,10 @@
-import os
-import uuid
-from flask import Flask, request, jsonify, render_template
-from openai import OpenAI
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+import os
+import uuid
+from openai import OpenAI
 
 
 app = Flask(__name__)
@@ -104,6 +104,7 @@ Explanation: <brief explanation>
         raise ValueError("Failed to parse AI response")
 
 @app.route("/", methods=["GET"])
+@login_required
 def home():
     return render_template("index.html")
 
@@ -144,6 +145,7 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/quiz", methods=["POST"])
+@login_required
 def start_quiz():
     try:
         data = request.get_json()
@@ -169,6 +171,7 @@ def start_quiz():
         return jsonify({"error": "Could not generate question."}), 500
 
 @app.route("/answer", methods=["POST"])
+@login_required
 def check_answer():
     try:
         data = request.get_json()

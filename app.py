@@ -158,9 +158,27 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/quiz", methods=["GET"])
+@app.route("/quiz", methods=["GET", "POST"])
 @login_required
 def quiz():
+    if request.method == "POST":
+        topic = request.form.get("topic")
+        level = request.form.get("level")
+        num_questions = request.form.get("num_questions", type=int)
+
+        # Example debug print
+        print("User selected topic:", topic)
+        print("Difficulty level:", level)
+        print("Number of questions:", num_questions)
+
+        # Pass these to the quiz template if you wish
+        return render_template(
+            "quiz.html",
+            topic=topic,
+            level=level,
+            num_questions=num_questions
+        )
+
     return render_template("quiz.html")
 
 

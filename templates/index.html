@@ -1,28 +1,43 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="container mt-5 text-center">
-  <h1 class="display-3 fw-bold gradient-text mb-4">
-    Quiz App
-  </h1>
-  <p class="lead mb-4">
-    Test your knowledge on various topics and have fun!
-  </p>
+<div class="container mt-5" style="max-width: 600px;">
+  <h1 class="text-center text-primary mb-4">Welcome to the Quiz App!</h1>
 
-  {% if current_user.is_authenticated %}
-    <a href="{{ url_for('dashboard') }}" class="btn btn-success btn-lg me-3">Go to Dashboard</a>
-    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-lg">Logout</a>
-  {% else %}
-    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">Login</a>
-    <a href="{{ url_for('register') }}" class="btn btn-outline-secondary btn-lg">Register</a>
-  {% endif %}
+  <form method="POST" action="/quiz">
+    <div class="mb-3">
+      <label for="topic" class="form-label">Select Subject:</label>
+      <select class="form-select" id="topic" name="topic" required>
+        <option value="">-- Choose a Subject --</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="Science">Science</option>
+        <option value="History">History</option>
+        <option value="Geography">Geography</option>
+        <option value="General Knowledge">General Knowledge</option>
+      </select>
+  <div class="text-center mt-4">
+{% endblock %}
+    <a href="/practice-papers" class="btn btn-outline-primary">Previous Practice Papers</a>
+  </div>
 </div>
 
-<style>
-.gradient-text {
-  background: linear-gradient(45deg, #ff6a00, #ee0979);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-</style>
-{% endblock %}
+  </form>
+    </div>
+    </div>
+
+      <button type="submit" class="btn btn-success btn-lg">Start Quiz</button>
+    <div class="mb-3">
+      <label for="level" class="form-label">Select Difficulty Level:</label>
+      <select class="form-select" id="level" name="level" required>
+        <option value="">-- Choose Level --</option>
+        <option value="Easy">Easy</option>
+        <option value="Medium">Medium</option>
+    <div class="d-grid">
+        <option value="Hard">Hard</option>
+
+      </select>
+    </div>
+    </div>
+      <input type="number" class="form-control" id="num_questions" name="num_questions" min="1" max="50" value="5" required>
+
+    <div class="mb-3">

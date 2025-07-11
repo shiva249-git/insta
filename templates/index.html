@@ -1,21 +1,31 @@
+{% endblock %}
+
+
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="bg-primary text-white py-5">
-  <div class="container text-center">
-    <h1 class="display-4 mb-4">WELCOME TO SHICHAN STUDY SPACE COMPETITIVE PRACTICE MODULE</h1>
-    <p class="lead mb-4">
-      Test your knowledge and have fun. Sign up or log in to start!
-    </p>
+<div class="container mt-5 text-center">
+  <h1 class="display-3 fw-bold gradient-text mb-4">
+    Quiz App
+  </h1>
+  <p class="lead mb-4">
+    Test your knowledge on various topics and have fun!
+  </p>
 
-    {% if current_user.is_authenticated %}
-      <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg me-3">Go to Dashboard</a>
-      <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-lg">Logout</a>
-    {% else %}
-      <a href="{{ url_for('login') }}" class="btn btn-light btn-lg me-3">Login</a>
-      <a href="{{ url_for('register') }}" class="btn btn-outline-light btn-lg">Register</a>
-    {% endif %}
-  </div>
+  {% if current_user.is_authenticated %}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-success btn-lg me-3">Go to Dashboard</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-lg">Logout</a>
+  {% else %}
+    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">Login</a>
+    <a href="{{ url_for('register') }}" class="btn btn-outline-secondary btn-lg">Register</a>
+  {% endif %}
 </div>
-{% endblock %}
 
+<style>
+.gradient-text {
+  background: linear-gradient(45deg, #ff6a00, #ee0979);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+</style>
+{% endblock %}

@@ -141,6 +141,10 @@ def login():
 
     return render_template("login.html")
 
+@app.route("/practice-papers")
+@login_required
+def practice_papers():
+    return render_template("practice_papers.html")
 
 @app.route("/dashboard")
 @login_required

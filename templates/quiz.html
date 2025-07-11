@@ -13,10 +13,18 @@
   <h1 class="mb-4 text-center">Quiz App</h1>
 
   <!-- Topic input -->
-  <div class="mb-3">
-    <label for="topic" class="form-label">Enter Quiz Topic</label>
-    <input type="text" id="topic" class="form-control" placeholder="e.g. General Knowledge" />
-  </div>
+<div class="mb-3">
+  <label for="topic" class="form-label fw-bold">Select Subject</label>
+  <select id="topic" class="form-select">
+    <option value="" selected disabled>-- Select a subject --</option>
+    <option value="History">History</option>
+    <option value="Geography">Geography</option>
+    <option value="Polity">Polity</option>
+    <option value="Economics">Economics</option>
+    <option value="Science">Science</option>
+    <option value="Current Affairs">Current Affairs</option>
+  </select>
+</div>
 
   <button class="btn btn-primary mb-4" onclick="getQuiz()">Start Quiz</button>
 

@@ -115,14 +115,17 @@ def register():
         username = request.form["username"]
         password = request.form["password"]
 
-        hashed_pw = generate_password_hash(password)
-        new_user = User(username=username, password_hash=hashed_pw)
-        db.session.add(new_user)
+        # Hash password and save user
+        hashed_password = generate_password_hash(password)
+        user = User(username=username, password=hashed_password)
+        db.session.add(user)
         db.session.commit()
 
-        return "User registered!"
+        flash("Registration successful! Welcome to the Quiz App.", "success")
+        return redirect(url_for("home"))    # <--- redirect to home page
 
     return render_template("register.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():

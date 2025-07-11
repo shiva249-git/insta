@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+from flask import redirect, url_for, render_template, flash
 import os
 import uuid
 from openai import OpenAI
@@ -132,17 +133,26 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
-            return "Logged in successfully!"
+            flash("Logged in successfully!", "success")
+            return redirect(url_for("dashboard"))
         else:
-            return "Invalid credentials."
+            flash("Invalid credentials.", "danger")
+            return redirect(url_for("login"))
 
     return render_template("login.html")
+
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
 
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("login"))
+
 
 @app.route("/quiz", methods=["GET"])
 @login_required

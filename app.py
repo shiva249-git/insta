@@ -109,22 +109,32 @@ Explanation: <brief explanation>
 def home():
     return render_template("index.html")
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
 
-        # Hash password and save user
-        hashed_password = generate_password_hash(password)
-        user = User(username=username, password=hashed_password)
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # Get form data
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        # ✅ Check if user already exists
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash('Username already exists. Please choose another.')
+            return redirect(url_for('register'))
+
+        # Hash the password
+        hashed_password = generate_password_hash(password, method='sha256')
+
+        # Create new user
+        user = User(username=username, password_hash=hashed_password)
         db.session.add(user)
         db.session.commit()
 
-        flash("Registration successful! Welcome to the Quiz App.", "success")
-        return redirect(url_for("home"))    # <--- redirect to home page
+        flash('Registration successful. Please log in.')
+        return redirect(url_for('login'))
 
-    return render_template("register.html")
+    return render_template('register.html')
 
 
 @app.route("/login", methods=["GET", "POST"])

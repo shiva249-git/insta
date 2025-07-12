@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_sqlalchemy import SQLAlchemy
-from flask import redirect, url_for, render_template, flash
 import os
 import uuid
+
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 
 
@@ -160,30 +160,28 @@ def logout():
     logout_user()
     return redirect(url_for("login"))
 
-
-@app.route("/quiz", methods=["GET", "POST"])
 @login_required
+@app.route("/quiz", methods=["GET", "POST"])
 def quiz():
+    topic = None
+    level = None
+    num_questions = None
+
     if request.method == "POST":
         topic = request.form.get("topic")
         level = request.form.get("level")
         num_questions = request.form.get("num_questions", type=int)
 
-        # Example debug print
         print("User selected topic:", topic)
         print("Difficulty level:", level)
         print("Number of questions:", num_questions)
 
-        # Pass these to the quiz template if you wish
-        return render_template(
-            "quiz.html",
-            topic=topic,
-            level=level,
-            num_questions=num_questions
-        )
-
-    return render_template("quiz.html")
-
+    return render_template(
+        "quiz.html",
+        topic=topic,
+        level=level,
+        num_questions=num_questions
+    )
 
 @app.route("/quiz", methods=["POST"])
 @login_required

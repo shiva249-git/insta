@@ -12,9 +12,10 @@ app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "your-secret-key"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///quiz_app.db"
-
 db = SQLAlchemy(app)
+
 login_manager = LoginManager(app)
+login_manager.init_app(app)
 login_manager.login_view = "login"
 
 class User(UserMixin, db.Model):
@@ -37,27 +38,41 @@ else:
 # In-memory store for active quiz sessions
 sessions = {}
 
-def generate_ssc_question(topic):
-    """
-    Ask GPT-4 to generate an SSC CGL MCQ with clean parsing.
-    """
-    prompt = f"""
-Generate one SSC CGL multiple choice question on the topic "{topic}".
-Steps:
-1. Create the question.
-2. Generate four unique options labeled A, B, C, D.
-3. Choose the correct answer letter (A/B/C/D).
-4. Provide a short explanation.
+def generate_ssc_prompt(topic, level="Medium", num_options=4):
+    return f"""
+You are an expert question setter for the SSC CGL exam in India.
 
-Format strictly like this:
-Question: <question>
-A) <Option A>
-B) <Option B>
-C) <Option C>
-D) <Option D>
-Answer: <A/B/C/D>
-Explanation: <brief explanation>
+Please generate **one single multiple-choice question** for the SSC CGL exam on the topic: \"{topic}\". 
+
+- The question should be suitable for the {level} difficulty level.
+- Provide exactly {num_options} options, each uniquely labeled as A), B), C), D).
+- Mark the correct answer clearly.
+- Provide a short explanation in 1-2 sentences that helps a student understand why the answer is correct.
+
+**IMPORTANT: Follow this output format EXACTLY (no extra text, no markdown, no titles):**
+
+Question: <your question text here>
+A) <option A>
+B) <option B>
+C) <option C>
+D) <option D>
+Answer: <one letter A/B/C/D>
+Explanation: <1-2 sentence explanation>
+
+Example:
+Question: What is the capital of India?
+A) Mumbai
+B) Kolkata
+C) New Delhi
+D) Chennai
+Answer: C
+Explanation: New Delhi is the capital of India and houses important government institutions.
+
+Now generate the question.
 """
+
+def generate_ssc_question(topic, level="Medium"):
+    prompt = generate_ssc_prompt(topic, level)
 
     completion = client.chat.completions.create(
         model="gpt-4",
@@ -84,7 +99,6 @@ Explanation: <brief explanation>
         answer_line = next(l for l in lines if l.startswith("Answer:"))
         raw_answer = answer_line.replace("Answer:", "").strip()
 
-        # Accept either "C" or "C) text" from model
         if ") " in raw_answer:
             answer_letter, _ = raw_answer.split(") ", 1)
         else:
@@ -109,7 +123,6 @@ Explanation: <brief explanation>
 def home():
     return render_template("index.html")
 
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -131,8 +144,8 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        flash('Registration successful. Please log in.')
-        return redirect(url_for('login'))
+        flash("Registration successful. Please log in.", "success")
+        return redirect(url_for('home'))
 
     return render_template('register.html')
 
@@ -154,21 +167,32 @@ def login():
 
     return render_template("login.html")
 
-@app.route("/practice-papers")
+@app.route("/logout")
 @login_required
-def practice_papers():
-    return render_template("practice_papers.html")
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+@app.route("/")
+@login_required
+def home():
+    return redirect(url_for('dashboard'))
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
     return render_template("dashboard.html")
 
-@app.route("/logout")
+@app.route("/quiz", methods=["GET"])
 @login_required
-def logout():
-    logout_user()
-    return redirect(url_for("login"))
+def quiz():
+    return render_template("quiz.html")
+
+@app.route("/practice_papers")
+@login_required
+def practice_papers():
+    return render_template("practice_papers.html")
+
 
 @login_required
 @app.route("/quiz", methods=["GET", "POST"])

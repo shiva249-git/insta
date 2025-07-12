@@ -1,18 +1,25 @@
-{% extends "layout.html" %}
-{% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">Previous Practice Papers</h2>
 
-  <ul class="list-group">
-    <li class="list-group-item">
-      <a href="/static/papers/ssc_gk_2023.pdf" target="_blank">SSC GK Practice Paper – 2023</a>
-    </li>
-    <li class="list-group-item">
-      <a href="/static/papers/ssc_gk_2022.pdf" target="_blank">SSC GK Practice Paper – 2022</a>
-    </li>
-    <li class="list-group-item">
-      <a href="/static/papers/ssc_current_affairs.pdf" target="_blank">Current Affairs Paper</a>
-    </li>
-  </ul>
-</div>
+{% extends "layout.html" %}
+{% block title %}Practice Papers - Shichan Study Space{% endblock %}
+
+{% block content %}
+<h2 class="text-center mb-4">Practice Papers</h2>
+
+<p class="text-center">
+  Here you’ll find downloadable practice papers for SSC exams.
+</p>
+
+<ul class="list-group list-group-flush">
+  <li class="list-group-item bg-dark text-light">
+    <a href="/static/papers/paper1.pdf" target="_blank" class="text-info">
+      Practice Paper 1 (PDF)
+    </a>
+  </li>
+  <li class="list-group-item bg-dark text-light">
+    <a href="/static/papers/paper2.pdf" target="_blank" class="text-info">
+      Practice Paper 2 (PDF)
+    </a>
+  </li>
+  <!-- Add more as needed -->
+</ul>
 {% endblock %}

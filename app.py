@@ -118,10 +118,6 @@ def generate_ssc_question(topic, level="Medium"):
         print("❌ Error parsing AI response:", e)
         raise ValueError("Failed to parse AI response")
 
-@app.route("/", methods=["GET"])
-@login_required
-def home():
-    return render_template("index.html")
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

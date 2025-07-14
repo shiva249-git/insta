@@ -179,11 +179,6 @@ def home():
 def dashboard():
     return render_template("dashboard.html")
 
-@app.route("/quiz", methods=["GET"])
-@login_required
-def quiz():
-    return render_template("quiz.html")
-
 @app.route("/practice_papers")
 @login_required
 def practice_papers():

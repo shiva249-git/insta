@@ -4,7 +4,7 @@
 {% block content %}
 <h2 class="text-center mb-4">Take a Quiz</h2>
 
-<form id="quizForm">
+<form id="quizForm" novalidate>
   <div class="mb-3">
     <label for="topic" class="form-label">Select Topic</label>
     <select class="form-select" id="topic" name="topic" required>
@@ -16,6 +16,9 @@
       <option value="Science">Science</option>
       <!-- Add more topics as needed -->
     </select>
+    <div class="invalid-feedback">
+      Please select a topic.
+    </div>
   </div>
 
   <div class="mb-3">
@@ -24,20 +27,23 @@
     <small class="text-muted">Leave blank for 10 questions.</small>
   </div>
 
-  <button type="button" class="btn btn-primary" onclick="getQuiz()">Start Quiz</button>
+  <button type="button" id="startQuizBtn" class="btn btn-primary">Start Quiz</button>
+  
 </form>
 
-<div id="loading" style="display:none" class="mt-3">
-  <div class="spinner-border text-primary"></div> Loading...
+<div id="loading" style="display: none;" class="mt-4 text-center">
+  <div class="spinner-border text-primary" role="status"></div>
+  <p class="mt-2">Loading...</p>
 </div>
 
 <div id="questionArea" style="display:none;" class="mt-4">
-  <h4 id="questionText"></h4>
+  <h4 id="questionText" class="mb-3"></h4>
   <div id="options" class="mb-3"></div>
-  <button type="button" class="btn btn-success" onclick="submitAnswer()">Submit Answer</button>
+  <button type="button" id="submitAnswerBtn" class="btn btn-success">Submit Answer</button>
 </div>
 
 <div id="result" class="mt-3"></div>
 
 <script src="{{ url_for('static', filename='quiz.js') }}"></script>
 {% endblock %}
+

@@ -122,26 +122,21 @@ def generate_ssc_question(topic, level="Medium"):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Get form data
         username = request.form.get('username')
         password = request.form.get('password')
 
-        # ✅ Check if user already exists
         existing_user = User.query.filter_by(username=username).first()
         if existing_user:
-            flash('Username already exists. Please choose another.')
+            flash('Username already exists. Please choose another.', 'danger')
             return redirect(url_for('register'))
 
-        # Hash the password
         hashed_password = generate_password_hash(password, method='sha256')
-
-        # Create new user
         user = User(username=username, password_hash=hashed_password)
         db.session.add(user)
         db.session.commit()
 
-        flash("Registration successful. Please log in.", "success")
-        return redirect(url_for('home'))
+        flash("✅ Registration successful. Please log in.", "success")
+        return redirect(url_for('login'))  # <-- user is redirected to login
 
     return render_template('register.html')
 

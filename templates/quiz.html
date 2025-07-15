@@ -7,16 +7,23 @@
 <form id="quizForm">
   <div class="mb-3">
     <label for="topic" class="form-label">Select Topic</label>
-    <select class="form-select" id="topic" name="topic">
+    <select class="form-select" id="topic" name="topic" required>
       <option value="">-- Select a topic --</option>
       <option value="History">History</option>
       <option value="Geography">Geography</option>
       <option value="Economics">Economics</option>
       <option value="Polity">Polity</option>
       <option value="Science">Science</option>
-      <!-- Add more topics as you wish -->
+      <!-- Add more topics as needed -->
     </select>
   </div>
+
+  <div class="mb-3">
+    <label for="numQuestions" class="form-label">Number of Questions (Default is 10)</label>
+    <input type="number" class="form-control" id="numQuestions" name="numQuestions" min="1" max="50" placeholder="10">
+    <small class="text-muted">Leave blank for 10 questions.</small>
+  </div>
+
   <button type="button" class="btn btn-primary" onclick="getQuiz()">Start Quiz</button>
 </form>
 

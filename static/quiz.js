@@ -96,7 +96,8 @@ function submitAnswer() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      answer: answer
+      answer: answer,
+      session_id: window.sessionId
     })
   })
     .then(response => response.json())

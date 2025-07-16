@@ -25,7 +25,7 @@ function getQuiz() {
   document.getElementById("questionArea").style.display = "none";
   document.getElementById("result").innerText = "";
 
-  fetch("/quiz", {
+  fetch("/quiz/fetch", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -119,3 +119,10 @@ function submitAnswer() {
       alert("Error submitting answer.");
     });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const startBtn = document.getElementById("startQuizBtn");
+  if (startBtn) {
+    startBtn.addEventListener("click", getQuiz);
+  }
+});

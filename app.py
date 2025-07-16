@@ -203,7 +203,7 @@ def quiz():
         num_questions=num_questions
     )
 
-@app.route("/quiz", methods=["POST"])
+@app.route("/quiz/fetch", methods=["POST"])
 @login_required
 def start_quiz():
     try:

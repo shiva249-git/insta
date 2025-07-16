@@ -25,7 +25,7 @@ function getQuiz() {
   document.getElementById("questionArea").style.display = "none";
   document.getElementById("result").innerText = "";
 
-  fetch("/quiz/start", {
+  fetch("/quiz/fetch", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -46,7 +46,8 @@ function getQuiz() {
         return;
       }
 
-      document.getElementById("questionText").innerText = data.question;
+    window.sessionId = data.session_id;
+  document.getElementById("questionText").innerText = data.question;
 
       const optionsDiv = document.getElementById("options");
       optionsDiv.innerHTML = "";
@@ -98,8 +99,8 @@ function submitAnswer() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      session_id: window.sessionId,
       answer: answer
+session_id: window.sessionId,
     })
   })
     .then(response => response.json())

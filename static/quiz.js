@@ -25,7 +25,7 @@ function getQuiz() {
   document.getElementById("questionArea").style.display = "none";
   document.getElementById("result").innerText = "";
 
-  fetch("/quiz/fetch", {
+  fetch("/quiz/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -37,6 +37,8 @@ function getQuiz() {
   })
     .then(response => response.json())
     .then(data => {
+      window.sessionId = data.session_id;   // ✅ SAVE IT!
+
       document.getElementById("loading").style.display = "none";
 
       if (data.error) {
@@ -96,8 +98,8 @@ function submitAnswer() {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      answer: answer,
-      session_id: window.sessionId
+      session_id: window.sessionId,
+      answer: answer
     })
   })
     .then(response => response.json())
@@ -120,10 +122,3 @@ function submitAnswer() {
       alert("Error submitting answer.");
     });
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  const startBtn = document.getElementById("startQuizBtn");
-  if (startBtn) {
-    startBtn.addEventListener("click", getQuiz);
-  }
-});

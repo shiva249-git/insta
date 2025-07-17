@@ -7,6 +7,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 
+import random
 
 app = Flask(__name__)
 
@@ -204,64 +205,88 @@ def quiz():
     )
 
 @app.route("/quiz/fetch", methods=["POST"])
-@login_required
-def start_quiz():
-    try:
-        data = request.get_json()
-        topic = data.get("topic", "General Knowledge")
+def fetch_quiz():
+    data = request.get_json()
+    topic = data.get("topic")
+    num_questions = int(data.get("num_questions", 10))
 
-        question, options, answer, explanation = generate_ssc_question(topic)
+    if not topic:
+        return jsonify({"error": "Topic is required."}), 400
 
-        session_id = str(uuid.uuid4())
-        sessions[session_id] = {
-            "answer": answer,
-            "explanation": explanation
-        }
+    # Example question bank — replace this with your DB or JSON load
+    question_bank = {
+        "math": [
+            {
+                "id": "q1",
+                "question": "What is 2 + 2?",
+                "options": {"A": "3", "B": "4", "C": "5", "D": "6"},
+                "correct_answer": "B",
+                "explanation": "2 + 2 equals 4."
+            },
+            {
+                "id": "q2",
+                "question": "What is 5 * 3?",
+                "options": {"A": "15", "B": "20", "C": "25", "D": "10"},
+                "correct_answer": "A",
+                "explanation": "5 times 3 equals 15."
+            },
+            # Add more questions...
+        ]
+        # Add more topics...
+    }
 
-        return jsonify({
-            "question": question,
-            "options": options,
-            "session_id": session_id,
-            "message": "Reply with A, B, C or D."
-        })
+    questions = question_bank.get(topic.lower())
+    if not questions:
+        return jsonify({"error": f"No questions found for topic: {topic}"}), 404
 
-    except Exception as e:
-        print("❌ Error in /quiz:", e)
-        return jsonify({"error": "Could not generate question."}), 500
+    selected_questions = random.sample(questions, min(num_questions, len(questions)))
+
+    # Store session — here just use a dummy ID or implement session DB
+    session_id = "session_" + str(random.randint(1000, 9999))
+
+    return jsonify({
+        "session_id": session_id,
+        "questions": [
+            {
+                "id": q["id"],
+                "question": q["question"],
+                "options": q["options"]
+            } for q in selected_questions
+        ]
+    })
+
 
 @app.route("/answer", methods=["POST"])
-@login_required
 def check_answer():
-    try:
-        data = request.get_json()
-        session_id = data.get("session_id")
-        user_answer = data.get("answer", "").strip().upper()
+    data = request.get_json()
+    question_id = data.get("question_id")
+    selected_answer = data.get("answer")
+    session_id = data.get("session_id")
 
-        if session_id not in sessions:
-            return jsonify({"error": "Invalid or expired session_id."}), 400
+    # Simulated DB — in real use, fetch from database or session store
+    all_questions = {
+        "q1": {
+            "correct_answer": "B",
+            "explanation": "2 + 2 = 4"
+        },
+        "q2": {
+            "correct_answer": "A",
+            "explanation": "5 * 3 = 15"
+        },
+        # Add more...
+    }
 
-        correct_answer = sessions[session_id]["answer"]
-        explanation = sessions[session_id]["explanation"]
+    question_data = all_questions.get(question_id)
+    if not question_data:
+        return jsonify({"error": "Invalid question ID."}), 400
 
-        # Clean up session after answer
-        sessions.pop(session_id)
+    result = "correct" if selected_answer == question_data["correct_answer"] else "incorrect"
 
-        if user_answer == correct_answer:
-            return jsonify({
-                "result": "correct",
-                "explanation": explanation
-            })
-        else:
-            return jsonify({
-                "result": "incorrect",
-                "correct_answer": correct_answer,
-                "explanation": explanation
-            })
-
-    except Exception as e:
-        print("❌ Error in /answer:", e)
-        return jsonify({"error": "Internal server error occurred. Check logs."}), 500
-
+    return jsonify({
+        "result": result,
+        "correct_answer": question_data["correct_answer"],
+        "explanation": question_data["explanation"]
+    })
 
 
 if __name__ == "__main__":

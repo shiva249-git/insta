@@ -4,11 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
     startBtn.addEventListener("click", getQuiz);
   }
 
-    const submitBtn = document.getElementById("submitAnswerBtn");
+  const submitBtn = document.getElementById("submitAnswerBtn");
   if (submitBtn) {
     submitBtn.addEventListener("click", submitAnswer);
   }
 });
+
+let quizData = [];
+let currentQuestionIndex = 0;
+let score = 0;
 
 function getQuiz() {
   const topic = document.getElementById("topic").value.trim();
@@ -24,11 +28,10 @@ function getQuiz() {
     numQuestions = "10";
   }
 
-  console.log("Requesting quiz for:", topic, "Questions:", numQuestions);
-
   document.getElementById("loading").style.display = "block";
   document.getElementById("questionArea").style.display = "none";
   document.getElementById("result").innerText = "";
+  document.getElementById("finalScore").innerText = "";
 
   fetch("/quiz/fetch", {
     method: "POST",
@@ -42,8 +45,6 @@ function getQuiz() {
   })
     .then(response => response.json())
     .then(data => {
-      window.sessionId = data.session_id;   // ✅ SAVE IT!
-
       document.getElementById("loading").style.display = "none";
 
       if (data.error) {
@@ -51,42 +52,54 @@ function getQuiz() {
         return;
       }
 
-    window.sessionId = data.session_id;
-  document.getElementById("questionText").innerText = data.question;
+      quizData = data.questions; // expecting an array of questions
+      currentQuestionIndex = 0;
+      score = 0;
+      window.sessionId = data.session_id;
 
-      const optionsDiv = document.getElementById("options");
-      optionsDiv.innerHTML = "";
-
-      for (const [key, value] of Object.entries(data.options)) {
-        const wrapper = document.createElement("div");
-        wrapper.className = "form-check";
-
-        const radio = document.createElement("input");
-        radio.type = "radio";
-        radio.className = "form-check-input";
-        radio.name = "answer";
-        radio.value = key;
-        radio.id = `option_${key}`;
-
-        const label = document.createElement("label");
-        label.className = "form-check-label";
-        label.setAttribute("for", `option_${key}`);
-        label.innerText = `${key}) ${value}`;
-
-        wrapper.appendChild(radio);
-        wrapper.appendChild(label);
-        optionsDiv.appendChild(wrapper);
-      }
-
-      document.getElementById("questionArea").style.display = "block";
+      renderQuestion();
     })
     .catch(err => {
       document.getElementById("loading").style.display = "none";
       console.error(err);
-      alert("Error fetching quiz question.");
+      alert("Error fetching quiz.");
     });
 }
 
+function renderQuestion() {
+  const question = quizData[currentQuestionIndex];
+
+  if (!question) return;
+
+  document.getElementById("questionText").innerText = question.question;
+
+  const optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML = "";
+
+  for (const [key, value] of Object.entries(question.options)) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-check";
+
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.className = "form-check-input";
+    radio.name = "answer";
+    radio.value = key;
+    radio.id = `option_${key}`;
+
+    const label = document.createElement("label");
+    label.className = "form-check-label";
+    label.setAttribute("for", `option_${key}`);
+    label.innerText = `${key}) ${value}`;
+
+    wrapper.appendChild(radio);
+    wrapper.appendChild(label);
+    optionsDiv.appendChild(wrapper);
+  }
+
+  document.getElementById("questionArea").style.display = "block";
+  document.getElementById("result").innerHTML = "";
+}
 
 function submitAnswer() {
   const selected = document.querySelector('input[name="answer"]:checked');
@@ -106,7 +119,8 @@ function submitAnswer() {
     },
     body: JSON.stringify({
       answer: answer,
-      session_id: window.sessionId
+      session_id: window.sessionId,
+      question_id: quizData[currentQuestionIndex].id  // You should provide ID from backend
     })
   })
     .then(response => response.json())
@@ -114,18 +128,32 @@ function submitAnswer() {
       document.getElementById("loading").style.display = "none";
 
       if (data.result === "correct") {
+        score += 1;
         document.getElementById("result").innerHTML =
-          `<span class="text-success">✅ Correct!</span> ${data.explanation}`;
+          `<span class="text-success">✅ Correct!</span> ${data.explanation || ''}`;
       } else {
         document.getElementById("result").innerHTML =
-          `<span class="text-danger">❌ Incorrect.</span> The correct answer is <strong>${data.correct_answer}</strong>. ${data.explanation}`;
+          `<span class="text-danger">❌ Incorrect.</span> Correct: <strong>${data.correct_answer}</strong>. ${data.explanation || ''}`;
       }
 
-      document.getElementById("questionArea").style.display = "none";
+      setTimeout(() => {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+          renderQuestion();
+        } else {
+          showFinalScore();
+        }
+      }, 1500);
     })
     .catch(err => {
       document.getElementById("loading").style.display = "none";
       console.error(err);
       alert("Error submitting answer.");
     });
+}
+
+function showFinalScore() {
+  document.getElementById("questionArea").style.display = "none";
+  document.getElementById("finalScore").innerHTML =
+    `<h4>You scored ${score} out of ${quizData.length}</h4>`;
 }

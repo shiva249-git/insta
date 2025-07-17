@@ -82,6 +82,7 @@ function getQuiz() {
     });
 }
 
+
 function submitAnswer() {
   const selected = document.querySelector('input[name="answer"]:checked');
   if (!selected) {
@@ -123,4 +124,3 @@ function submitAnswer() {
       alert("Error submitting answer.");
     });
 }
-

@@ -3,6 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (startBtn) {
     startBtn.addEventListener("click", getQuiz);
   }
+
+    const submitBtn = document.getElementById("submitAnswerBtn");
+  if (submitBtn) {
+    submitBtn.addEventListener("click", submitAnswer);
+  }
 });
 
 function getQuiz() {

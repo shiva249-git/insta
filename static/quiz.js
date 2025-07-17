@@ -100,7 +100,7 @@ function submitAnswer() {
     },
     body: JSON.stringify({
       answer: answer,
-session_id: window.sessionId,
+      session_id: window.sessionId
     })
   })
     .then(response => response.json())
@@ -123,3 +123,4 @@ session_id: window.sessionId,
       alert("Error submitting answer.");
     });
 }
+

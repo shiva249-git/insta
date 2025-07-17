@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
 let quizData = [];
 let currentQuestionIndex = 0;
 let score = 0;
+ window.sessionId = null;
 
 function getQuiz() {
   const topic = document.getElementById("topic").value.trim();
@@ -67,7 +68,12 @@ function getQuiz() {
 }
 
 function renderQuestion() {
-  const question = quizData[currentQuestionIndex];
+  if (currentQuestionIndex >= quizData.length) {
+    showFinalScore();
+    return;
+  }
+
+ const question = quizData[currentQuestionIndex];
 
   if (!question) return;
 

@@ -23,6 +23,9 @@ redis_client = Redis(host='localhost', port=6379)
 
 app = Flask(__name__)
 
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or os.urandom(24)
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True

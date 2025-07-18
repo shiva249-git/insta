@@ -1,4 +1,3 @@
-{% extends "layout.html" %}
 
 {% block title %}Login - Shichan Study Space{% endblock %}
 
@@ -6,8 +5,8 @@
   <h2>Login</h2>
 
   <form method="POST" action="{{ url_for('login') }}">
-    {{ csrf_token() }}
-    
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <label for="username">Username</label>
     <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
 
@@ -19,4 +18,3 @@
 
   <p>Don’t have an account? <a href="{{ url_for('register') }}">Register here.</a></p>
 {% endblock %}
-

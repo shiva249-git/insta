@@ -1,53 +1,83 @@
 {% extends "layout.html" %}
-{% block title %}Take Quiz - Shichan Study Space{% endblock %}
+
+{% block title %}Quiz - Shichan Study Space{% endblock %}
 
 {% block content %}
-<h2 class="text-center mb-4">Take a Quiz</h2>
+  <h2>Choose Quiz Settings</h2>
 
-<form id="quizForm" novalidate>
-  <div class="mb-3">
-    <label for="topic" class="form-label">Select Topic</label>
-    <select class="form-select" id="topic" name="topic" required>
-      <option value="">-- Select a topic --</option>
-      <option value="History">History</option>
-      <option value="Geography">Geography</option>
-      <option value="Economics">Economics</option>
-      <option value="Polity">Polity</option>
-      <option value="Science">Science</option>
-      <!-- Add more topics as needed -->
+  <form method="POST" action="{{ url_for('quiz') }}">
+    <label for="topic">Select Topic</label>
+   
+ <select id="topic" name="topic" required>
+  <option value="" disabled selected>-- Choose Topic --</option>
+  <option value="General Knowledge" {% if topic == 'General Knowledge' %}selected{% endif %}>General Knowledge</option>
+  <option value="Polity" {% if topic == 'Polity' %}selected{% endif %}>Polity</option>
+  <option value="History" {% if topic == 'History' %}selected{% endif %}>History</option>
+  <option value="Geography" {% if topic == 'Geography' %}selected{% endif %}>Geography</option>
+  <option value="Economics" {% if topic == 'Economics' %}selected{% endif %}>Economics</option>
+  <option value="Science" {% if topic == 'Science' %}selected{% endif %}>Science (Physics, Chemistry, Biology)</option>
+  <option value="Mathematics" {% if topic == 'Mathematics' %}selected{% endif %}>Mathematics</option>
+  <option value="Current Affairs" {% if topic == 'Current Affairs' %}selected{% endif %}>Current Affairs</option>
+  <option value="Reasoning" {% if topic == 'Reasoning' %}selected{% endif %}>Reasoning</option>
+  <option value="English" {% if topic == 'English' %}selected{% endif %}>English Language</option>
+</select>
+
+    <label for="level">Difficulty Level</label>
+    <select id="level" name="level" required>
+      <option value="" disabled selected>-- Choose Difficulty --</option>
+      <option value="Easy" {% if level == 'Easy' %}selected{% endif %}>Easy</option>
+      <option value="Medium" {% if level == 'Medium' %}selected{% endif %}>Medium</option>
+      <option value="Hard" {% if level == 'Hard' %}selected{% endif %}>Hard</option>
     </select>
-    <div class="invalid-feedback">
-      Please select a topic.
-    </div>
-  </div>
 
-  <div class="mb-3">
-    <label for="numQuestions" class="form-label">Number of Questions (Default is 10)</label>
-    <input type="number" class="form-control" id="numQuestions" name="numQuestions" min="1" max="50" placeholder="10">
-    <small class="text-muted">Leave blank for 10 questions.</small>
-  </div>
+    <label for="num_questions">Number of Questions</label>
+    <input type="number" id="num_questions" name="num_questions" min="1" max="20" value="{{ num_questions or 5 }}" required>
 
-  <button type="button" id="startQuizBtn" class="btn btn-primary">
-Start Quiz
-</button>
-  
-</form>
+    <button type="submit">Start Quiz</button>
+  </form>
 
-<div id="loading" style="display: none;" class="mt-4 text-center">
-  <div class="spinner-border text-primary" role="status"></div>
-  <p class="mt-2">Loading...</p>
-</div>
+  <style>
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+      background: rgba(0, 242, 96, 0.15);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 242, 96, 0.2);
+    }
 
-<div id="questionArea" style="display:none;" class="mt-4">
-  <h4 id="questionText" class="mb-3"></h4>
-  <div id="options" class="mb-3"></div>
-  <button type="button" id="submitAnswerBtn" class="btn btn-success">Submit Answer</button>
-</div>
+    label {
+      font-weight: 600;
+      margin-top: 1rem;
+      display: block;
+    }
 
-<div id="result" class="mt-3"></div>
-<div id="finalScore" class="mt-3"></div>
+    select, input[type="number"] {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.4rem;
+      border-radius: 6px;
+      border: 2px solid #00f260;
+      font-size: 1rem;
+      outline-color: #00f260;
+    }
 
+    button {
+      margin-top: 1.5rem;
+      background: #00f260;
+      color: #111;
+      border: none;
+      padding: 0.8rem 1.6rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transition: background 0.3s ease;
+    }
 
-<script src="{{ url_for('static', filename='quiz.js') }}"></script>
+    button:hover {
+      background: #00cc50;
+      color: #fff;
+    }
+  </style>
 {% endblock %}
-

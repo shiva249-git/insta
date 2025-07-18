@@ -3,38 +3,49 @@
 {% block title %}Dashboard - Shichan Study Space{% endblock %}
 
 {% block content %}
-<div class="text-center">
-  <h2 class="mb-4">Welcome to Your Dashboard</h2>
+  <h2>Welcome, {{ current_user.username }}!</h2>
+  <p>Ready to start learning? Choose an option below:</p>
 
-  <!-- Nav tabs -->
-  <ul class="nav nav-tabs justify-content-center" id="dashboardTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="quiz-tab" data-bs-toggle="tab" data-bs-target="#quiz" type="button" role="tab">
-        Take Quiz
-      </button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="papers-tab" data-bs-toggle="tab" data-bs-target="#papers" type="button" role="tab">
-        Practice Papers
-      </button>
-    </li>
-  </ul>
+  <div class="card-container">
+    <a href="{{ url_for('quiz') }}" class="card">
+      <h3>Take a Quiz</h3>
+      <p>Test your knowledge with fun quizzes.</p>
+    </a>
 
-  <!-- Tab content -->
-  <div class="tab-content mt-4" id="dashboardTabsContent">
-    <!-- Quiz Tab -->
-    <div class="tab-pane fade show active" id="quiz" role="tabpanel">
-      <h4>Take a New Quiz</h4>
-      <p>Select a topic and start practicing!</p>
-      <a href="{{ url_for('quiz') }}" class="btn btn-primary mt-2">Start Quiz</a>
-    </div>
-
-    <!-- Practice Papers Tab -->
-    <div class="tab-pane fade" id="papers" role="tabpanel">
-      <h4>Previous Practice Papers</h4>
-      <p>Access previous practice papers to revise topics.</p>
-      <a href="{{ url_for('practice_papers') }}" class="btn btn-secondary mt-2">View Practice Papers</a>
-    </div>
+    <a href="{{ url_for('practice_papers') }}" class="card">
+      <h3>Practice Papers</h3>
+      <p>Practice past papers to sharpen your skills.</p>
+    </a>
   </div>
-</div>
+
+  <style>
+    .card-container {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+    .card {
+      background: rgba(0, 242, 96, 0.15);
+      border: 2px solid #00f260;
+      border-radius: 15px;
+      padding: 2rem;
+      width: 250px;
+      color: #111;
+      text-align: center;
+      text-decoration: none;
+      box-shadow: 0 8px 20px rgba(0, 242, 96, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 12px 30px rgba(0, 242, 96, 0.4);
+      background: rgba(0, 242, 96, 0.3);
+      color: #000;
+    }
+    .card h3 {
+      margin-bottom: 0.5rem;
+    }
+  </style>
 {% endblock %}

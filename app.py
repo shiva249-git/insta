@@ -1,23 +1,42 @@
 import os
 import uuid
-
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user  # this is correct
-from werkzeug.security import generate_password_hash, check_password_hash
-from openai import OpenAI
-from datetime import datetime
-
-
 import random
 
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_wtf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from redis import Redis
+from werkzeug.security import generate_password_hash, check_password_hash
+from openai import OpenAI
+
+
+redis_client = Redis(host='localhost', port=6379)
 
 
 app = Flask(__name__)
 
-app.config["SECRET_KEY"] = "your-secret-key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///quiz_app.db"
+app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+csrf = CSRFProtect(app)
+
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    storage_uri="redis://localhost:6379"
+)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'quiz_app.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
 
 login_manager = LoginManager(app)
 login_manager.init_app(app)
@@ -26,11 +45,14 @@ login_manager.login_view = "login"
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
 
 # Initialize OpenAI client
 api_key = os.environ.get("OPENAI_API_KEY")
@@ -124,32 +146,32 @@ def generate_ssc_question_openai(topic, level="Medium"):
         print("❌ Error parsing AI response:", e)
         raise ValueError("Failed to parse AI response")
 
+@app.after_request
+def apply_csp(response):
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    return response
+
+
 @app.context_processor
 def inject_now():
     return {'now': datetime.utcnow()}
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
-
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            flash('Username already exists. Please choose another.', 'danger')
-            return redirect(url_for('register'))
-
-        hashed_password = generate_password_hash(password, method='sha256')
-        user = User(username=username, password_hash=hashed_password)
-        db.session.add(user)
+        hashed_pw = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+        new_user = User(username=username, email=email, password=hashed_pw)
+        db.session.add(new_user)
         db.session.commit()
-
-        flash("✅ Registration successful. Please log in.", "success")
-        return redirect(url_for('login'))  # <-- user is redirected to login
-
+        flash('Registration successful! Please login.', 'success')
+        return redirect(url_for('login'))
     return render_template('register.html')
 
-
+@limiter.limit("5 per minute")
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -166,8 +188,6 @@ def login():
             return redirect(url_for("login"))
 
     return render_template("login.html",)
-
-
 
 @app.route("/logout")
 @login_required
@@ -197,61 +217,71 @@ def quiz():
     topic = None
     level = None
     num_questions = None
+    questions = None
+    error = None
 
     if request.method == "POST":
         topic = request.form.get("topic")
-        level = request.form.get("level")
-        num_questions = request.form.get("num_questions", type=int)
+        level = request.form.get("level") or "Medium"
+        num_questions = request.form.get("num_questions", type=int) or 5
 
-        print("User selected topic:", topic)
-        print("Difficulty level:", level)
-        print("Number of questions:", num_questions)
+        if not topic:
+            error = "Please select a topic."
+        else:
+            try:
+                # Call your AI question generation function here
+                questions = []
+                for _ in range(num_questions):
+                    q, opts, ans, exp = generate_ssc_question_openai(topic, level)
+                    questions.append({
+                        "question": q,
+                        "options": opts,
+                        "answer": ans,
+                        "explanation": exp
+                    })
+            except Exception as e:
+                error = f"Error generating questions: {str(e)}"
 
     return render_template(
         "quiz.html",
         topic=topic,
         level=level,
-        num_questions=num_questions
+        num_questions=num_questions,
+        questions=questions,
+        error=error
     )
 
 @app.route("/quiz/fetch", methods=["POST"])
+@login_required
 def fetch_quiz():
     data = request.get_json()
     topic = data.get("topic")
     level = data.get("level", "Medium")
-    num_questions = int(data.get("num_questions", 5))
 
     if not topic:
         return jsonify({"error": "Topic is required."}), 400
 
-    questions_list = []
-    session_id = "session_" + str(random.randint(1000, 9999))
-    quiz_sessions[session_id] = {}
+    try:
+        question, options, answer, explanation = generate_ssc_question_openai(topic, level)
 
-    for i in range(num_questions):
-        try:
-            q_text, options, correct_answer, explanation = generate_ssc_question_openai(topic, level)
-            qid = f"q{i+1}"
-            questions_list.append({
-                "id": qid,
-                "question": q_text,
-                "options": options
-            })
-            quiz_sessions[session_id][qid] = {
-                "correct_answer": correct_answer,
-                "explanation": explanation
-            }
-        except Exception as e:
-            print(f"⚠️ Skipping question {i+1} due to error:", e)
-            continue
+        session_id = "session_" + str(random.randint(1000, 9999))
 
-    if not questions_list:
-        return jsonify({"error": f"No valid questions generated for topic '{topic}'."}), 500
+        return jsonify({
+            "session_id": session_id,
+            "questions": [
+                {
+                    "id": session_id + "_q1",
+                    "question": question,
+                    "options": options,
+                    "correct_answer": answer,
+                    "explanation": explanation
+                }
+            ]
+        })
 
-    return jsonify({
-        "session_id": session_id,
-        "questions": questions_list
-    })
+    except Exception as e:
+        return jsonify({"error": "Failed to generate question from AI.", "details": str(e)}), 500
+
 
 @login_required
 @app.route("/answer", methods=["POST"])

@@ -26,7 +26,6 @@ app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or os.urandom(24)
 
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -36,7 +35,7 @@ csrf = CSRFProtect(app)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    storage_uri="redis://localhost:6379"
+    storage_uri="memory://"
 )
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -186,7 +185,7 @@ def login():
         password = request.form["password"]
 
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
+        if user and check_password_hash(user.password, password):
             login_user(user)
             flash("Logged in successfully!", "success")
             return redirect(url_for("dashboard"))
@@ -323,5 +322,7 @@ def check_answer():
 
 
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+

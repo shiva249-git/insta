@@ -3,7 +3,7 @@ import uuid
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user  # this is correct
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 
@@ -160,7 +160,7 @@ def login():
             flash("Invalid credentials.", "danger")
             return redirect(url_for("login"))
 
-    return render_template_string("login.html")
+    return render_template("login.html")
 
 @app.route("/logout")
 @login_required

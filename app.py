@@ -12,6 +12,10 @@ from flask_limiter.util import get_remote_address
 from redis import Redis
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
+from flask_wtf.csrf import CSRFProtect
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 redis_client = Redis(host='localhost', port=6379)
@@ -19,7 +23,7 @@ redis_client = Redis(host='localhost', port=6379)
 
 app = Flask(__name__)
 
-app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'

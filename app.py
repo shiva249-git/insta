@@ -6,6 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user  # this is correct
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
+from datetime import datetime
+
 
 import random
 
@@ -122,6 +124,9 @@ def generate_ssc_question_openai(topic, level="Medium"):
         print("❌ Error parsing AI response:", e)
         raise ValueError("Failed to parse AI response")
 
+@app.context_processor
+def inject_now():
+    return {'now': datetime.utcnow()}
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -160,7 +165,9 @@ def login():
             flash("Invalid credentials.", "danger")
             return redirect(url_for("login"))
 
-    return render_template("login.html")
+    return render_template("login.html",)
+
+
 
 @app.route("/logout")
 @login_required

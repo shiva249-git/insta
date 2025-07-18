@@ -1,4 +1,3 @@
-import os
 import uuid
 import random
 
@@ -45,7 +44,6 @@ db = SQLAlchemy(app)
 
 
 login_manager = LoginManager(app)
-login_manager.init_app(app)
 login_manager.login_view = "login"
 
 class User(UserMixin, db.Model):

@@ -9,6 +9,8 @@ from openai import OpenAI
 
 import random
 
+
+
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "your-secret-key"
@@ -37,7 +39,7 @@ else:
     client = None
 
 # In-memory store for active quiz sessions
-sessions = {}
+quiz_sessions = {}
 
 def generate_ssc_prompt(topic, level="Medium", num_options=4):
     return f"""
@@ -72,7 +74,8 @@ Explanation: New Delhi is the capital of India and houses important government i
 Now generate the question.
 """
 
-def generate_ssc_question(topic, level="Medium"):
+      
+def generate_ssc_question_openai(topic, level="Medium"):
     prompt = generate_ssc_prompt(topic, level)
 
     completion = client.chat.completions.create(
@@ -139,7 +142,7 @@ def register():
         flash("✅ Registration successful. Please log in.", "success")
         return redirect(url_for('login'))  # <-- user is redirected to login
 
-    return render_template('register.html')
+    return render_template_string('register.html')
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -157,7 +160,7 @@ def login():
             flash("Invalid credentials.", "danger")
             return redirect(url_for("login"))
 
-    return render_template("login.html")
+    return render_template_string("login.html")
 
 @app.route("/logout")
 @login_required
@@ -208,54 +211,42 @@ def quiz():
 def fetch_quiz():
     data = request.get_json()
     topic = data.get("topic")
-    num_questions = int(data.get("num_questions", 10))
+    level = data.get("level", "Medium")
+    num_questions = int(data.get("num_questions", 5))
 
     if not topic:
         return jsonify({"error": "Topic is required."}), 400
 
-    # Example question bank — replace this with your DB or JSON load
-    question_bank = {
-        "math": [
-            {
-                "id": "q1",
-                "question": "What is 2 + 2?",
-                "options": {"A": "3", "B": "4", "C": "5", "D": "6"},
-                "correct_answer": "B",
-                "explanation": "2 + 2 equals 4."
-            },
-            {
-                "id": "q2",
-                "question": "What is 5 * 3?",
-                "options": {"A": "15", "B": "20", "C": "25", "D": "10"},
-                "correct_answer": "A",
-                "explanation": "5 times 3 equals 15."
-            },
-            # Add more questions...
-        ]
-        # Add more topics...
-    }
-
-    questions = question_bank.get(topic.lower())
-    if not questions:
-        return jsonify({"error": f"No questions found for topic: {topic}"}), 404
-
-    selected_questions = random.sample(questions, min(num_questions, len(questions)))
-
-    # Store session — here just use a dummy ID or implement session DB
+    questions_list = []
     session_id = "session_" + str(random.randint(1000, 9999))
+    quiz_sessions[session_id] = {}
+
+    for i in range(num_questions):
+        try:
+            q_text, options, correct_answer, explanation = generate_ssc_question_openai(topic, level)
+            qid = f"q{i+1}"
+            questions_list.append({
+                "id": qid,
+                "question": q_text,
+                "options": options
+            })
+            quiz_sessions[session_id][qid] = {
+                "correct_answer": correct_answer,
+                "explanation": explanation
+            }
+        except Exception as e:
+            print(f"⚠️ Skipping question {i+1} due to error:", e)
+            continue
+
+    if not questions_list:
+        return jsonify({"error": f"No valid questions generated for topic '{topic}'."}), 500
 
     return jsonify({
         "session_id": session_id,
-        "questions": [
-            {
-                "id": q["id"],
-                "question": q["question"],
-                "options": q["options"]
-            } for q in selected_questions
-        ]
+        "questions": questions_list
     })
 
-
+@login_required
 @app.route("/answer", methods=["POST"])
 def check_answer():
     data = request.get_json()
@@ -263,30 +254,28 @@ def check_answer():
     selected_answer = data.get("answer")
     session_id = data.get("session_id")
 
-    # Simulated DB — in real use, fetch from database or session store
-    all_questions = {
-        "q1": {
-            "correct_answer": "B",
-            "explanation": "2 + 2 = 4"
-        },
-        "q2": {
-            "correct_answer": "A",
-            "explanation": "5 * 3 = 15"
-        },
-        # Add more...
-    }
+    if not session_id or not question_id:
+        return jsonify({"error": "Session ID and Question ID are required."}), 400
 
-    question_data = all_questions.get(question_id)
+    session_data = quiz_sessions.get(session_id)
+    if not session_data:
+        return jsonify({"error": "Invalid or expired session ID."}), 400
+
+    question_data = session_data.get(question_id)
     if not question_data:
-        return jsonify({"error": "Invalid question ID."}), 400
+        return jsonify({"error": "Invalid question ID for this session."}), 400
 
-    result = "correct" if selected_answer == question_data["correct_answer"] else "incorrect"
+    correct_answer = question_data["correct_answer"]
+    explanation = question_data["explanation"]
+
+    result = "correct" if selected_answer == correct_answer else "incorrect"
 
     return jsonify({
         "result": result,
-        "correct_answer": question_data["correct_answer"],
-        "explanation": question_data["explanation"]
+        "correct_answer": correct_answer,
+        "explanation": explanation
     })
+
 
 
 if __name__ == "__main__":

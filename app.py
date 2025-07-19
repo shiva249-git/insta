@@ -340,12 +340,14 @@ def check_answer():
     })
 
 @app.after_request
-def set_csp(response):
-    response.headers['Content-Security-Policy'] = (
+def add_csp_headers(response):
+    csp = (
         "default-src 'self'; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com;"
+        "font-src https://fonts.gstatic.com; "
+        "script-src 'self';"
     )
+    response.headers['Content-Security-Policy'] = csp
     return response
 
 

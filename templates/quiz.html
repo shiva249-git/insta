@@ -6,11 +6,11 @@
   <h2 class="title">Choose Quiz Settings</h2>
 
   <form method="POST" action="{{ url_for('quiz') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <label for="topic">Select Topic</label>
     <select id="topic" name="topic" required>
-      <option value="" disabled selected>-- Choose Topic --</option>
+      <option value="" disabled {% if not topic %}selected{% endif %}>-- Choose Topic --</option>
       {% for t in [
         "General Knowledge", "Polity", "History", "Geography", "Economics",
         "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
@@ -20,7 +20,7 @@
 
     <label for="level">Difficulty Level</label>
     <select id="level" name="level" required>
-      <option value="" disabled selected>-- Choose Difficulty --</option>
+      <option value="" disabled {% if not level %}selected{% endif %}>-- Choose Difficulty --</option>
       {% for l in ["Easy", "Medium", "Hard"] %}
         <option value="{{ l }}" {% if level == l %}selected{% endif %}>{{ l }}</option>
       {% endfor %}
@@ -29,8 +29,33 @@
     <label for="num_questions">Number of Questions</label>
     <input type="number" id="num_questions" name="num_questions" min="1" max="20" value="{{ num_questions or 5 }}" required>
 
-    <button type="submit">🚀 Start Quiz</button>
+    <button type="submit">Start Quiz</button>
   </form>
+
+  {% if error %}
+    <p style="color: #ff6666; font-weight: bold; margin-top: 1rem;">{{ error }}</p>
+  {% endif %}
+
+  {% if questions %}
+    <h3 class="title">Quiz on {{ topic }} ({{ level }})</h3>
+    <ol>
+    {% for q in questions %}
+      <li style="margin-bottom: 1.5rem;">
+        <p><strong>Q:</strong> {{ q.question }}</p>
+        <ul>
+          {% for opt in q.options %}
+            <li>{{ opt }}</li>
+          {% endfor %}
+        </ul>
+        <details>
+          <summary>Answer & Explanation</summary>
+          <p><strong>Answer:</strong> {{ q.answer }}</p>
+          <p><strong>Explanation:</strong> {{ q.explanation }}</p>
+        </details>
+      </li>
+    {% endfor %}
+    </ol>
+  {% endif %}
 
   <style>
     body {
@@ -90,6 +115,15 @@
     button:hover {
       background: #00e687;
       color: #000;
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    details p {
+      margin: 0.3rem 0 0 1rem;
     }
   </style>
 {% endblock %}

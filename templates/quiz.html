@@ -3,81 +3,93 @@
 {% block title %}Quiz - Shichan Study Space{% endblock %}
 
 {% block content %}
-  <h2>Choose Quiz Settings</h2>
+  <h2 class="title">Choose Quiz Settings</h2>
 
-  <form method="POST" action="{{ url_for('quiz') }}">{{ csrf_token }}
-  <label for="topic">Select Topic</label>
-   
- <select id="topic" name="topic" required>
-  <option value="" disabled selected>-- Choose Topic --</option>
-  <option value="General Knowledge" {% if topic == 'General Knowledge' %}selected{% endif %}>General Knowledge</option>
-  <option value="Polity" {% if topic == 'Polity' %}selected{% endif %}>Polity</option>
-  <option value="History" {% if topic == 'History' %}selected{% endif %}>History</option>
-  <option value="Geography" {% if topic == 'Geography' %}selected{% endif %}>Geography</option>
-  <option value="Economics" {% if topic == 'Economics' %}selected{% endif %}>Economics</option>
-  <option value="Science" {% if topic == 'Science' %}selected{% endif %}>Science (Physics, Chemistry, Biology)</option>
-  <option value="Mathematics" {% if topic == 'Mathematics' %}selected{% endif %}>Mathematics</option>
-  <option value="Current Affairs" {% if topic == 'Current Affairs' %}selected{% endif %}>Current Affairs</option>
-  <option value="Reasoning" {% if topic == 'Reasoning' %}selected{% endif %}>Reasoning</option>
-  <option value="English" {% if topic == 'English' %}selected{% endif %}>English Language</option>
-</select>
+  <form method="POST" action="{{ url_for('quiz') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <label for="topic">Select Topic</label>
+    <select id="topic" name="topic" required>
+      <option value="" disabled selected>-- Choose Topic --</option>
+      {% for t in [
+        "General Knowledge", "Polity", "History", "Geography", "Economics",
+        "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
+        <option value="{{ t }}" {% if topic == t %}selected{% endif %}>{{ t }}</option>
+      {% endfor %}
+    </select>
 
     <label for="level">Difficulty Level</label>
     <select id="level" name="level" required>
       <option value="" disabled selected>-- Choose Difficulty --</option>
-      <option value="Easy" {% if level == 'Easy' %}selected{% endif %}>Easy</option>
-      <option value="Medium" {% if level == 'Medium' %}selected{% endif %}>Medium</option>
-      <option value="Hard" {% if level == 'Hard' %}selected{% endif %}>Hard</option>
+      {% for l in ["Easy", "Medium", "Hard"] %}
+        <option value="{{ l }}" {% if level == l %}selected{% endif %}>{{ l }}</option>
+      {% endfor %}
     </select>
 
     <label for="num_questions">Number of Questions</label>
     <input type="number" id="num_questions" name="num_questions" min="1" max="20" value="{{ num_questions or 5 }}" required>
 
-    <button type="submit">Start Quiz</button>
+    <button type="submit">🚀 Start Quiz</button>
   </form>
 
   <style>
+    body {
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
     form {
-      max-width: 400px;
-      margin: 0 auto;
-      background: rgba(0, 242, 96, 0.15);
+      max-width: 500px;
+      margin: 2rem auto;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(6px);
       padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0, 242, 96, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
     }
 
     label {
-      font-weight: 600;
-      margin-top: 1rem;
       display: block;
+      margin-top: 1rem;
+      font-weight: 600;
     }
 
     select, input[type="number"] {
       width: 100%;
-      padding: 0.6rem 0.8rem;
-      margin-top: 0.4rem;
-      border-radius: 6px;
-      border: 2px solid #00f260;
+      padding: 0.7rem 0.9rem;
+      margin-top: 0.3rem;
+      border-radius: 8px;
+      border: none;
       font-size: 1rem;
-      outline-color: #00f260;
+      background: #f5f5f5;
+      color: #111;
     }
 
     button {
       margin-top: 1.5rem;
-      background: #00f260;
+      width: 100%;
+      background: #00ff9d;
       color: #111;
       border: none;
-      padding: 0.8rem 1.6rem;
-      border-radius: 10px;
+      padding: 0.9rem;
+      border-radius: 12px;
       cursor: pointer;
-      font-weight: 700;
+      font-weight: bold;
       font-size: 1.1rem;
-      transition: background 0.3s ease;
+      transition: background 0.3s ease-in-out;
     }
 
     button:hover {
-      background: #00cc50;
-      color: #fff;
+      background: #00e687;
+      color: #000;
     }
   </style>
 {% endblock %}

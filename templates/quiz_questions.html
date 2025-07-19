@@ -1,28 +1,35 @@
 {% extends "layout.html" %}
-{% block title %}Quiz - {{ topic }} ({{ level }}){% endblock %}
+
+{% block title %}Quiz Questions{% endblock %}
+
 {% block content %}
+<div class="quiz-card mx-auto" style="max-width: 700px;">
+  <h2 class="mb-4 text-center">Quiz on {{ topic }} ({{ level }})</h2>
 
-<h2>{{ topic }} - {{ level }} Quiz</h2>
+  <form method="POST" action="{{ url_for('submit_quiz') }}">
+    {{ csrf_token }}
+    
+    {% for question in questions %}
+      <div class="mb-4">
+        <p><strong>Q{{ loop.index }}:</strong> {{ question.question }}</p>
+        
+        {% for opt_key, opt_val in question.options.items() %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" 
+                   name="q{{ loop.index0 }}" id="q{{ loop.index0 }}_{{ opt_key }}" 
+                   value="{{ opt_key }}" required>
+            <label class="form-check-label" for="q{{ loop.index0 }}_{{ opt_key }}">
+              {{ opt_key }}) {{ opt_val }}
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+      <hr>
+    {% endfor %}
 
-<form action="{{ url_for('submit_quiz') }}" method="post">
-  {{ csrf_token }}  <!-- Make sure you're using Flask-WTF or include a CSRF token manually -->
-
-  {% for q in questions %}
-    <div class="question-block">
-      <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
-
-      {% set q_index = loop.index0 %}
-      {% for opt in q.options %}
-        <label>
-          <input type="radio" name="q{{ q_index }}" value="{{ opt }}" required>
-          {{ opt }}
-        </label><br>
-      {% endfor %}
+    <div class="d-grid">
+      <button type="submit" class="btn btn-primary btn-lg">Submit Answers</button>
     </div>
-    <hr>
-  {% endfor %}
-
-  <button type="submit" class="btn btn-success">Submit Quiz</button>
-</form>
-
+  </form>
+</div>
 {% endblock %}

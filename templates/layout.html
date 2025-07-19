@@ -2,110 +2,73 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <title>Shichan Study Space</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Quiz App{% endblock %}</title>
+  
+  <!-- Bootstrap 5 CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
+  
   <style>
-    /* Fullscreen video background */
-    #bgVideo {
-      position: fixed;
-      right: 0;
-      bottom: 0;
-      min-width: 100%;
-      min-height: 100%;
-      object-fit: cover;
-      z-index: -2;
+    body {
+      background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 1.1rem;
+      padding-bottom: 50px;
     }
 
-    /* Dark overlay for contrast */
-    .overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: -1;
+    .navbar {
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
-    /* Main content wrapper */
-    .content-wrapper {
-      position: relative;
-      z-index: 1;
-      padding: 2rem;
-      color: #fff;
+    .navbar-brand span {
+      font-size: 1.8rem;
     }
 
-    .navbar-custom {
-      background-color: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(6px);
+    .container {
+      padding-top: 30px;
     }
 
-    .card {
-      background-color: rgba(255, 255, 255, 0.1);
-      border: none;
-      backdrop-filter: blur(8px);
+    .quiz-card {
+      background-color: white;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      padding: 30px;
     }
 
-    .btn-primary {
-      background-color: #007bff;
-      border: none;
-    }
-
-    .btn-primary:hover {
-      background-color: #0056b3;
-    }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .fadeIn {
-      animation: fadeInUp 1s ease-in-out;
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- Background Video -->
-  <video autoplay muted loop id="bgVideo">
-    <source src="{{ url_for('static', filename='videos/background.mp4') }}" type="video/mp4">
-    Your browser does not support HTML5 video.
-  </video>
-
-  <!-- Overlay -->
-  <div class="overlay"></div>
-
   <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4">
-    <a class="navbar-brand" href="/">Shichan Study Space</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    
-    <div class="collapse navbar-collapse" id="navbarContent">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="/quiz">Quiz</a></li>
-        <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
-      </ul>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid justify-content-center">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <!-- Optional logo -->
+        <!-- <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="40" height="40" class="me-2"> -->
+        <span class="fw-bold text-white">Shichan Study Space</span>
+      </a>
     </div>
   </nav>
 
   <!-- Main Content -->
-  <div class="container content-wrapper fadeIn">
+  <div class="container">
     {% block content %}
     {% endblock %}
   </div>
 
-  <!-- Bootstrap JS -->
+  <!-- Footer -->
+  <footer>
+    &copy; 2025 Shichan Study Space. All rights reserved.
+  </footer>
+
+  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

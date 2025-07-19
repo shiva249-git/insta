@@ -236,46 +236,54 @@ def dashboard():
 def practice_papers():
     return render_template("practice_papers.html")
 
-
-@login_required
 @app.route("/quiz", methods=["GET", "POST"])
+@login_required
 def quiz():
-    topic = None
-    level = None
-    num_questions = None
-    questions = None
-    error = None
-
     if request.method == "POST":
         topic = request.form.get("topic")
         level = request.form.get("level") or "Medium"
         num_questions = request.form.get("num_questions", type=int) or 5
 
         if not topic:
-            error = "Please select a topic."
-        else:
-            try:
-                # Call your AI question generation function here
-                questions = []
-                for _ in range(num_questions):
-                    q, opts, ans, exp = generate_ssc_question_openai(topic, level)
-                    questions.append({
-                        "question": q,
-                        "options": opts,
-                        "answer": ans,
-                        "explanation": exp
-                    })
-            except Exception as e:
-                error = f"Error generating questions: {str(e)}"
+            flash("Please select a topic.")
+            return redirect(url_for("quiz"))
 
-    return render_template(
-        "quiz.html",
-        topic=topic,
-        level=level,
-        num_questions=num_questions,
-        questions=questions,
-        error=error
-    )
+        # Store user preferences in session and redirect to questions page
+        session["quiz_data"] = {
+            "topic": topic,
+            "level": level,
+            "num_questions": num_questions
+        }
+        return redirect(url_for("quiz_questions"))
+
+    return render_template("quiz_settings.html")  # Create this new HTML file
+
+@app.route("/quiz/questions")
+@login_required
+def quiz_questions():
+    quiz_data = session.get("quiz_data")
+    if not quiz_data:
+        return redirect(url_for("quiz"))  # fallback if user accesses directly
+
+    topic = quiz_data["topic"]
+    level = quiz_data["level"]
+    num_questions = quiz_data["num_questions"]
+
+    try:
+        questions = []
+        for _ in range(num_questions):
+            q, opts, ans, exp = generate_ssc_question_openai(topic, level)
+            questions.append({
+                "question": q,
+                "options": opts,
+                "answer": ans,
+                "explanation": exp
+            })
+    except Exception as e:
+        return f"Error generating questions: {str(e)}"
+
+    return render_template("quiz_questions.html", topic=topic, level=level, questions=questions)
+
 
 @app.route("/quiz/fetch", methods=["POST"])
 @login_required
@@ -338,6 +346,38 @@ def check_answer():
         "correct_answer": correct_answer,
         "explanation": explanation
     })
+
+@app.route("/submit_quiz", methods=["POST"])
+def submit_quiz():
+    if "questions" not in session:
+        return redirect(url_for("quiz"))
+
+    questions = session.get("questions", [])
+    topic = session.get("topic", "Unknown")
+    level = session.get("level", "Easy")
+
+    user_answers = []
+    score = 0
+    results = []
+
+    for i, q in enumerate(questions):
+        user_answer = request.form.get(f"q{i}")
+        correct_answer = q.get("answer")
+
+        is_correct = user_answer == correct_answer
+        if is_correct:
+            score += 1
+
+        results.append({
+            "question": q.get("question"),
+            "options": q.get("options"),
+            "user_answer": user_answer,
+            "correct_answer": correct_answer,
+            "explanation": q.get("explanation", "No explanation available."),
+            "is_correct": is_correct
+        })
+
+    return render_template("quiz_result.html", results=results, score=score, total=len(questions), topic=topic, level=level)
 
 @app.after_request
 def add_csp_headers(response):

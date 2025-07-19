@@ -13,58 +13,67 @@ document.addEventListener("DOMContentLoaded", () => {
 let quizData = [];
 let currentQuestionIndex = 0;
 let score = 0;
- window.sessionId = null;
+window.sessionId = null;
+
+// Read CSRF token from meta tag (adjust if different)
+const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : null;
 
 function getQuiz() {
-  const topic = document.getElementById("topic").value.trim();
+  const topicElem = document.getElementById("topic");
+  const topic = topicElem ? topicElem.value.trim() : "";
   const numQuestionsField = document.getElementById("numQuestions");
-  let numQuestions = numQuestionsField ? numQuestionsField.value.trim() : "10";
+  let numQuestions = numQuestionsField ? numQuestionsField.value.trim() : "5";
 
   if (!topic) {
     alert("Please select a topic.");
     return;
   }
 
-  if (!numQuestions) {
-    numQuestions = "10";
+  if (!numQuestions || isNaN(numQuestions) || numQuestions < 1) {
+    numQuestions = "5";
   }
 
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("questionArea").style.display = "none";
-  document.getElementById("result").innerText = "";
-  document.getElementById("finalScore").innerText = "";
+  showLoading(true);
+  resetQuizUI();
 
   fetch("/quiz/fetch", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
     },
     body: JSON.stringify({
       topic: topic,
       num_questions: parseInt(numQuestions, 10)
     })
   })
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById("loading").style.display = "none";
+  .then(res => res.json())
+  .then(data => {
+    showLoading(false);
 
-      if (data.error) {
-        alert(data.error);
-        return;
-      }
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
 
-      quizData = data.questions; // expecting an array of questions
-      currentQuestionIndex = 0;
-      score = 0;
-      window.sessionId = data.session_id;
+    if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+      alert("No questions received.");
+      return;
+    }
 
-      renderQuestion();
-    })
-    .catch(err => {
-      document.getElementById("loading").style.display = "none";
-      console.error(err);
-      alert("Error fetching quiz.");
-    });
+    quizData = data.questions;
+    currentQuestionIndex = 0;
+    score = 0;
+    window.sessionId = data.session_id;
+
+    renderQuestion();
+  })
+  .catch(err => {
+    showLoading(false);
+    console.error("Fetch quiz error:", err);
+    alert("Error fetching quiz questions.");
+  });
 }
 
 function renderQuestion() {
@@ -73,16 +82,25 @@ function renderQuestion() {
     return;
   }
 
- const question = quizData[currentQuestionIndex];
+  const questionObj = quizData[currentQuestionIndex];
+  if (!questionObj) {
+    alert("Question data missing.");
+    return;
+  }
 
-  if (!question) return;
-
-  document.getElementById("questionText").innerText = question.question;
+  document.getElementById("questionText").innerText = questionObj.question || "";
 
   const optionsDiv = document.getElementById("options");
   optionsDiv.innerHTML = "";
 
-  for (const [key, value] of Object.entries(question.options)) {
+  // Assuming options is an object with keys "A", "B", "C", "D"
+  const options = questionObj.options;
+  if (!options || typeof options !== "object") {
+    alert("Question options are invalid.");
+    return;
+  }
+
+  Object.entries(options).forEach(([key, value]) => {
     const wrapper = document.createElement("div");
     wrapper.className = "form-check";
 
@@ -101,10 +119,11 @@ function renderQuestion() {
     wrapper.appendChild(radio);
     wrapper.appendChild(label);
     optionsDiv.appendChild(wrapper);
-  }
+  });
 
   document.getElementById("questionArea").style.display = "block";
   document.getElementById("result").innerHTML = "";
+  document.getElementById("finalScore").innerHTML = "";
 }
 
 function submitAnswer() {
@@ -115,51 +134,70 @@ function submitAnswer() {
   }
 
   const answer = selected.value;
-
-  document.getElementById("loading").style.display = "block";
+  showLoading(true);
 
   fetch("/answer", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
     },
     body: JSON.stringify({
       answer: answer,
       session_id: window.sessionId,
-      question_id: quizData[currentQuestionIndex].id  // You should provide ID from backend
+      question_id: quizData[currentQuestionIndex].id
     })
   })
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById("loading").style.display = "none";
+  .then(res => res.json())
+  .then(data => {
+    showLoading(false);
 
-      if (data.result === "correct") {
-        score += 1;
-        document.getElementById("result").innerHTML =
-          `<span class="text-success">✅ Correct!</span> ${data.explanation || ''}`;
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    if (data.result === "correct") {
+      score++;
+      document.getElementById("result").innerHTML =
+        `<span style="color:green; font-weight:bold;">✅ Correct!</span><br>${data.explanation || ""}`;
+    } else {
+      document.getElementById("result").innerHTML =
+        `<span style="color:red; font-weight:bold;">❌ Incorrect.</span><br>Correct Answer: <strong>${data.correct_answer}</strong><br>${data.explanation || ""}`;
+    }
+
+    // Wait 1.5 seconds before next question
+    setTimeout(() => {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < quizData.length) {
+        renderQuestion();
       } else {
-        document.getElementById("result").innerHTML =
-          `<span class="text-danger">❌ Incorrect.</span> Correct: <strong>${data.correct_answer}</strong>. ${data.explanation || ''}`;
+        showFinalScore();
       }
-
-      setTimeout(() => {
-        currentQuestionIndex++;
-        if (currentQuestionIndex < quizData.length) {
-          renderQuestion();
-        } else {
-          showFinalScore();
-        }
-      }, 1500);
-    })
-    .catch(err => {
-      document.getElementById("loading").style.display = "none";
-      console.error(err);
-      alert("Error submitting answer.");
-    });
+    }, 1500);
+  })
+  .catch(err => {
+    showLoading(false);
+    console.error("Submit answer error:", err);
+    alert("Error submitting answer.");
+  });
 }
 
 function showFinalScore() {
   document.getElementById("questionArea").style.display = "none";
-  document.getElementById("finalScore").innerHTML =
-    `<h4>You scored ${score} out of ${quizData.length}</h4>`;
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("finalScore").innerHTML = `<h3>Your score: ${score} / ${quizData.length}</h3>`;
+}
+
+function showLoading(show) {
+  const loader = document.getElementById("loading");
+  if (loader) {
+    loader.style.display = show ? "block" : "none";
+  }
+}
+
+function resetQuizUI() {
+  document.getElementById("questionArea").style.display = "none";
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("finalScore").innerHTML = "";
 }

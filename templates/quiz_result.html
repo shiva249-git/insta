@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block title %}Quiz Results{% endblock %}
+{% block content %}
+
+<h2>Quiz Results ({{ topic }} - {{ level }})</h2>
+<p>Your Score: {{ score }}/{{ total }}</p>
+
+{% for r in results %}
+  <div class="question-result">
+    <p><strong>Q{{ loop.index }}:</strong> {{ r.question }}</p>
+    <p>Your Answer: {{ r.user_answer }}</p>
+    <p>Correct Answer: {{ r.correct_answer }}</p>
+    <p>{% if r.is_correct %}<span style="color:green;">Correct ✅</span>{% else %}<span style="color:red;">Wrong ❌</span>{% endif %}</p>
+    <p><em>Explanation:</em> {{ r.explanation }}</p>
+    <hr>
+  </div>
+{% endfor %}
+
+<a href="{{ url_for('quiz') }}" class="btn btn-primary">Take Another Quiz</a>
+
+{% endblock %}

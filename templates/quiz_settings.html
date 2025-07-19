@@ -3,15 +3,18 @@
 {% block title %}Quiz - Shichan Study Space{% endblock %}
 
 {% block content %}
-  <h2>Choose Quiz Settings</h2>
+  <h2 class="title">Choose Quiz Settings</h2>
 
   <form method="POST" action="{{ url_for('quiz') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
     <label for="topic">Select Topic</label>
     <select id="topic" name="topic" required>
       <option value="" disabled {% if not topic %}selected{% endif %}>-- Choose Topic --</option>
       {% for t in [
         "General Knowledge", "Polity", "History", "Geography", "Economics",
-        "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
+        "Science", "Mathematics", "Current Affairs", "Reasoning", "English"
+      ] %}
         <option value="{{ t }}" {% if topic == t %}selected{% endif %}>{{ t }}</option>
       {% endfor %}
     </select>
@@ -31,27 +34,6 @@
   </form>
 
   {% if error %}
-    <p style="color: red; font-weight: bold;">{{ error }}</p>
-  {% endif %}
-
-  {% if questions %}
-    <h3>Quiz on {{ topic }} ({{ level }})</h3>
-    <ol>
-      {% for q in questions %}
-        <li>
-          <p><strong>Q:</strong> {{ q.question }}</p>
-          <ul>
-            {% for opt in q.options %}
-              <li>{{ opt }}</li>
-            {% endfor %}
-          </ul>
-          <details>
-            <summary>Answer & Explanation</summary>
-            <p><strong>Answer:</strong> {{ q.answer }}</p>
-            <p><strong>Explanation:</strong> {{ q.explanation }}</p>
-          </details>
-        </li>
-      {% endfor %}
-    </ol>
+    <p style="color: #ff6666; font-weight: bold; margin-top: 1rem;">{{ error }}</p>
   {% endif %}
 {% endblock %}

@@ -391,9 +391,8 @@ def add_csp_headers(response):
     return response
 
 
-
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # This creates all tables based on your models
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)

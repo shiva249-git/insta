@@ -14,6 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
+from flask_wtf.csrf import generate_csrf
 
 load_dotenv()
 
@@ -30,7 +31,10 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
-csrf = CSRFProtect(app)
+
+csrf = CSRFProtect()
+csrf.init_app(app)
+
 
 limiter = Limiter(
     app=app,
@@ -156,6 +160,10 @@ def apply_csp(response):
     response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
     return response
 
+
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf())
 
 @app.context_processor
 def inject_now():

@@ -1,19 +1,20 @@
 {% extends "layout.html" %}
-
-{% block title %}Quiz - {{ topic }}{% endblock %}
+{% block title %}Quiz - {{ topic }} ({{ level }}){% endblock %}
 {% block content %}
-<h2>Quiz on {{ topic }} ({{ level }})</h2>
 
-<form method="POST" action="{{ url_for('submit_quiz') }}">
-  <!-- CSRF Token -->
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<h2>{{ topic }} - {{ level }} Quiz</h2>
+
+<form action="{{ url_for('submit_quiz') }}" method="post">
+  {{ csrf_token }}  <!-- Make sure you're using Flask-WTF or include a CSRF token manually -->
 
   {% for q in questions %}
-    <div class="question">
+    <div class="question-block">
       <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
+
+      {% set q_index = loop.index0 %}
       {% for opt in q.options %}
         <label>
-          <input type="radio" name="q{{ loop.parent.index0 }}" value="{{ opt }}" required>
+          <input type="radio" name="q{{ q_index }}" value="{{ opt }}" required>
           {{ opt }}
         </label><br>
       {% endfor %}
@@ -21,6 +22,7 @@
     <hr>
   {% endfor %}
 
-  <button type="submit">Submit Answers</button>
+  <button type="submit" class="btn btn-success">Submit Quiz</button>
 </form>
+
 {% endblock %}

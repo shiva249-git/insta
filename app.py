@@ -262,12 +262,13 @@ def quiz():
 @login_required
 def quiz_questions():
     quiz_data = session.get("quiz_data")
-    if not quiz_data:
-        return redirect(url_for("quiz"))  # fallback if user accesses directly
 
-    topic = quiz_data["topic"]
-    level = quiz_data["level"]
-    num_questions = quiz_data["num_questions"]
+    if not quiz_data:
+        return redirect(url_for("quiz"))  # Fallback if session is missing
+
+    topic = quiz_data.get("topic", "General")
+    level = quiz_data.get("level", "Easy")
+    num_questions = int(quiz_data.get("num_questions", 5))
 
     try:
         questions = []
@@ -283,7 +284,6 @@ def quiz_questions():
         return f"Error generating questions: {str(e)}"
 
     return render_template("quiz_questions.html", topic=topic, level=level, questions=questions)
-
 
 @app.route("/quiz/fetch", methods=["POST"])
 @login_required

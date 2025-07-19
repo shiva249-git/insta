@@ -6,7 +6,7 @@
   <h2 class="title">Choose Quiz Settings</h2>
 
   <form method="POST" action="{{ url_for('quiz') }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
     <label for="topic">Select Topic</label>
     <select id="topic" name="topic" required>

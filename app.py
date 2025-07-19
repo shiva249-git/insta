@@ -172,15 +172,29 @@ def inject_now():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        hashed_pw = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
-        new_user = User(username=username, email=email, password=hashed_pw)
+        username = request.form['username']
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'])
+
+        # Check if email already exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('Email already registered. Please log in.', 'warning')
+            return redirect(url_for('login'))
+        existing_username = User.query.filter_by(username=username).first()
+        if existing_username:
+            flash('Username already taken. Please choose another.', 'warning')
+            return redirect(url_for('register'))
+
+
+
+        new_user = User(username=username, email=email, password=password)
         db.session.add(new_user)
         db.session.commit()
-        flash('Registration successful! Please login.', 'success')
+
+        flash('Registration successful. Please log in.', 'success')
         return redirect(url_for('login'))
+
     return render_template('register.html')
 
 @limiter.limit("5 per minute")
@@ -324,6 +338,15 @@ def check_answer():
         "correct_answer": correct_answer,
         "explanation": explanation
     })
+
+@app.after_request
+def set_csp(response):
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com;"
+    )
+    return response
 
 
 

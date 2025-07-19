@@ -5,8 +5,8 @@
 {% block content %}
   <h2>Choose Quiz Settings</h2>
 
-  <form method="POST" action="{{ url_for('quiz') }}">
-    <label for="topic">Select Topic</label>
+  <form method="POST" action="{{ url_for('quiz') }}">{{ csrf_token }}
+  <label for="topic">Select Topic</label>
    
  <select id="topic" name="topic" required>
   <option value="" disabled selected>-- Choose Topic --</option>

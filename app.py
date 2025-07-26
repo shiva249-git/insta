@@ -64,6 +64,7 @@ def load_user(user_id):
 
 # Initialize OpenAI client
 api_key = os.environ.get("OPENAI_API_KEY")
+print("API Key:", api_key)
 
 if api_key:
     client = OpenAI(api_key=api_key)
@@ -236,27 +237,28 @@ def dashboard():
 def practice_papers():
     return render_template("practice_papers.html")
 
-@app.route("/quiz", methods=["GET", "POST"])
+
+@app.route('/quiz')
 @login_required
 def quiz():
-    if request.method == "POST":
-        topic = request.form.get("topic")
-        level = request.form.get("level") or "Medium"
-        num_questions = request.form.get("num_questions", type=int) or 5
-
-        if not topic:
-            flash("Please select a topic.")
-            return redirect(url_for("quiz"))
-
-        # Store user preferences in session and redirect to questions page
-        session["quiz_data"] = {
-            "topic": topic,
-            "level": level,
-            "num_questions": num_questions
+    # For example, quiz data prepared here or fetched from session/db
+    topic = "General Knowledge"
+    level = "Easy"
+    questions = [
+        {
+            "question": "Who is the first woman Prime Minister of India?",
+            "options": {"A": "Pratibha Patil", "B": "Sonia Gandhi", "C": "Indira Gandhi", "D": "Sushma Swaraj"},
+            "id": 1
+        },
+        {
+            "question": "What is the capital of France?",
+            "options": {"A": "Berlin", "B": "London", "C": "Paris", "D": "Madrid"},
+            "id": 2
         }
-        return redirect(url_for("quiz_questions"))
+    ]
 
-    return render_template("quiz_settings.html")  # Create this new HTML file
+    return render_template('quiz_questions.html', topic=topic, level=level, questions=questions)
+
 
 @app.route("/quiz/questions")
 @login_required

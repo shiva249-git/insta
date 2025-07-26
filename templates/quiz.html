@@ -36,22 +36,31 @@
 
   {% if questions %}
     <h3>Quiz on {{ topic }} ({{ level }})</h3>
-    <ol>
+
+    <form method="POST" action="{{ url_for('submit_quiz') }}">
+      {{ csrf_token() }}
+
       {% for q in questions %}
-        <li>
-          <p><strong>Q:</strong> {{ q.question }}</p>
-          <ul>
-            {% for opt in q.options %}
-              <li>{{ opt }}</li>
-            {% endfor %}
-          </ul>
-          <details>
-            <summary>Answer & Explanation</summary>
-            <p><strong>Answer:</strong> {{ q.answer }}</p>
-            <p><strong>Explanation:</strong> {{ q.explanation }}</p>
-          </details>
-        </li>
+        <div class="question-block" style="margin-bottom: 20px;">
+          <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
+
+          {% for opt_key, opt_val in q.options.items() %}
+            <div class="form-check">
+              <input type="radio"
+                     name="q{{ loop.index0 }}"
+                     id="q{{ loop.index0 }}_{{ opt_key }}"
+                     value="{{ opt_key }}"
+                     required>
+              <label for="q{{ loop.index0 }}_{{ opt_key }}">
+                {{ opt_key }}) {{ opt_val }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+        <hr>
       {% endfor %}
-    </ol>
+
+      <button type="submit" class="btn btn-primary">Submit Answers</button>
+    </form>
   {% endif %}
 {% endblock %}

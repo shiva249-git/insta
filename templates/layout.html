@@ -1,74 +1,188 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-100">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shichan Study Space</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Bootstrap 5 CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Google Fonts (Optional) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+
   <style>
-    body {
-      background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
-      font-family: 'Segoe UI', sans-serif;
-      font-size: 1.1rem;
-      padding-bottom: 50px;
+    body, html {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f7f9fc;
+      margin: 0;
     }
 
+    /* Sidebar styles */
+    #sidebar {
+      min-width: 250px;
+      max-width: 250px;
+      background: #2c3e50;
+      color: #fff;
+      transition: all 0.3s;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      overflow-y: auto;
+      padding-top: 1.5rem;
+      z-index: 1030;
+    }
+
+    #sidebar .nav-link {
+      color: #bdc3c7;
+      font-weight: 500;
+      padding: 12px 20px;
+    }
+    #sidebar .nav-link:hover, #sidebar .nav-link.active {
+      background: #34495e;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    /* Main content */
+    #content {
+      margin-left: 250px;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
     .navbar {
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      background: #34495e;
+      height: 60px;
+      padding: 0 1rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: fixed;
+      width: 100%;
+      left: 0;
+      top: 0;
+      z-index: 1040;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    .navbar-brand span {
-      font-size: 1.8rem;
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: #ecf0f1;
+      user-select: none;
+      text-decoration: none;
     }
 
-    .container {
-      padding-top: 30px;
+    /* Adjust content for navbar fixed height */
+    #content {
+      margin-top: 60px;
     }
 
+    /* Responsive sidebar toggle button */
+    #sidebarCollapse {
+      display: none;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    /* Responsive - hide sidebar and show toggle */
+    @media (max-width: 768px) {
+      #sidebar {
+        margin-left: -250px;
+        position: fixed;
+        transition: all 0.3s;
+      }
+      #sidebar.active {
+        margin-left: 0;
+      }
+      #content {
+        margin-left: 0;
+      }
+      #sidebarCollapse {
+        display: inline-block;
+      }
+    }
+
+    /* Card style for quiz content */
     .quiz-card {
-      background-color: white;
-      border-radius: 15px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-      padding: 30px;
+      background: #fff;
+      border-radius: 0.75rem;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
     }
 
     footer {
       text-align: center;
-      padding: 20px;
-      color: #666;
+      padding: 1rem 0;
+      color: #888;
       font-size: 0.9rem;
+      user-select: none;
     }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid justify-content-center">
-      <a class="navbar-brand d-flex align-items-center" href="#">
-        <!-- Optional logo -->
-        <!-- <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="40" height="40" class="me-2"> -->
-        <span class="fw-bold text-white">Shichan Study Space</span>
-      </a>
+  <!-- Sidebar -->
+  <nav id="sidebar" class="bg-dark">
+    <div class="px-3 mb-4 text-center fs-4 fw-bold">
+      Shichan Study Space
     </div>
+    <ul class="nav flex-column px-2">
+      <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('dashboard') }}">Dashboard</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('practice_papers') }}">Practice Papers</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('quiz') }}">Take Quiz</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+      </li>
+    </ul>
   </nav>
 
-  <!-- Main Content -->
-  <div class="container">
+  <!-- Navbar -->
+  <header class="navbar">
+    <button id="sidebarCollapse" aria-label="Toggle sidebar">&#9776;</button>
+    <a class="navbar-brand" href="{{ url_for('dashboard') }}">Shichan Study Space</a>
+  </header>
+
+  <!-- Page Content -->
+  <main id="content" role="main" tabindex="-1">
     {% block content %}
     {% endblock %}
-  </div>
+  </main>
 
-  <!-- Footer -->
   <footer>
     &copy; 2025 Shichan Study Space. All rights reserved.
   </footer>
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Sidebar toggle for small screens
+    document.addEventListener('DOMContentLoaded', function () {
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarCollapse');
+
+      toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+      });
+    });
+  </script>
+
 </body>
 </html>
-

@@ -1,66 +1,83 @@
 {% extends "layout.html" %}
-
 {% block title %}Quiz - Shichan Study Space{% endblock %}
 
 {% block content %}
-  <h2>Choose Quiz Settings</h2>
+<div class="quiz-card mx-auto mt-4" style="max-width: 700px;">
 
+  <h2 class="mb-4 text-center">Choose Quiz Settings</h2>
+
+  <!-- Quiz Setup Form -->
+  {% if not questions %}
   <form method="POST" action="{{ url_for('quiz') }}">
-    <label for="topic">Select Topic</label>
-    <select id="topic" name="topic" required>
-      <option value="" disabled {% if not topic %}selected{% endif %}>-- Choose Topic --</option>
-      {% for t in [
-        "General Knowledge", "Polity", "History", "Geography", "Economics",
-        "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
-        <option value="{{ t }}" {% if topic == t %}selected{% endif %}>{{ t }}</option>
-      {% endfor %}
-    </select>
+    {{ csrf_token() }}
 
-    <label for="level">Difficulty Level</label>
-    <select id="level" name="level" required>
-      <option value="" disabled {% if not level %}selected{% endif %}>-- Choose Difficulty --</option>
-      {% for l in ["Easy", "Medium", "Hard"] %}
-        <option value="{{ l }}" {% if level == l %}selected{% endif %}>{{ l }}</option>
-      {% endfor %}
-    </select>
+    <div class="mb-3">
+      <label for="topic" class="form-label">Select Topic</label>
+      <select class="form-select" id="topic" name="topic" required>
+        <option value="" disabled {% if not topic %}selected{% endif %}>-- Choose Topic --</option>
+        {% for t in [
+          "General Knowledge", "Polity", "History", "Geography", "Economics",
+          "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
+          <option value="{{ t }}" {% if topic == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-    <label for="num_questions">Number of Questions</label>
-    <input type="number" id="num_questions" name="num_questions" min="1" max="20" value="{{ num_questions or 5 }}" required>
+    <div class="mb-3">
+      <label for="level" class="form-label">Difficulty Level</label>
+      <select class="form-select" id="level" name="level" required>
+        <option value="" disabled {% if not level %}selected{% endif %}>-- Choose Difficulty --</option>
+        {% for l in ["Easy", "Medium", "Hard"] %}
+          <option value="{{ l }}" {% if level == l %}selected{% endif %}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-    <button type="submit">Start Quiz</button>
+    <div class="mb-3">
+      <label for="num_questions" class="form-label">Number of Questions</label>
+      <input type="number" class="form-control" id="num_questions" name="num_questions" min="1" max="20" value="{{ num_questions or 5 }}" required>
+    </div>
+
+    <div class="d-grid">
+      <button type="submit" class="btn btn-primary btn-lg">Start Quiz</button>
+    </div>
   </form>
 
   {% if error %}
-    <p style="color: red; font-weight: bold;">{{ error }}</p>
+    <p class="text-danger fw-bold mt-3">{{ error }}</p>
+  {% endif %}
   {% endif %}
 
+  <!-- Quiz Questions Displayed -->
   {% if questions %}
-    <h3>Quiz on {{ topic }} ({{ level }})</h3>
+  <h3 class="mt-5 text-center">Quiz on {{ topic }} ({{ level }})</h3>
 
-    <form method="POST" action="{{ url_for('submit_quiz') }}">
-      {{ csrf_token() }}
+  <form method="POST" action="{{ url_for('submit_quiz') }}">
+    {{ csrf_token() }}
 
-      {% for q in questions %}
-        <div class="question-block" style="margin-bottom: 20px;">
-          <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
+    {% for q in questions %}
+      <div class="mb-4">
+        <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
 
-          {% for opt_key, opt_val in q.options.items() %}
-            <div class="form-check">
-              <input type="radio"
-                     name="q{{ loop.index0 }}"
-                     id="q{{ loop.index0 }}_{{ opt_key }}"
-                     value="{{ opt_key }}"
-                     required>
-              <label for="q{{ loop.index0 }}_{{ opt_key }}">
-                {{ opt_key }}) {{ opt_val }}
-              </label>
-            </div>
-          {% endfor %}
-        </div>
-        <hr>
-      {% endfor %}
+        {% for opt_key, opt_val in q.options.items() %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="q{{ loop.index0 }}"
+                   id="q{{ loop.index0 }}_{{ opt_key }}" value="{{ opt_key }}" required>
+            <label class="form-check-label" for="q{{ loop.index0 }}_{{ opt_key }}">
+              {{ opt_key }}) {{ opt_val }}
+            </label>
+          </div>
+        {% endfor %}
+      </div>
+      <hr>
+    {% endfor %}
 
-      <button type="submit" class="btn btn-primary">Submit Answers</button>
-    </form>
+    <div class="d-grid">
+      <button type="submit" class="btn btn-success btn-lg">Submit Answers</button>
+    </div>
+  </form>
   {% endif %}
+
+</div>
 {% endblock %}
+

@@ -3,8 +3,9 @@
 {% block title %}Dashboard - Shichan Study Space{% endblock %}
 
 {% block content %}
-  <h2>Welcome, {{ current_user.username }}!</h2>
-  <p>Ready to start learning? Choose an option below:</p>
+<div class="container text-center my-5">
+  <h2 class="mb-2">Welcome, {{ current_user.username }}!</h2>
+  <p class="mb-4">Ready to start learning? Choose an option below:</p>
 
   <div class="card-container">
     <a href="{{ url_for('quiz') }}" class="card">
@@ -14,38 +15,55 @@
 
     <a href="{{ url_for('practice_papers') }}" class="card">
       <h3>Practice Papers</h3>
-      <p>Practice past papers to sharpen your skills.</p>
+      <p>Sharpen your skills with previous year questions.</p>
     </a>
   </div>
+</div>
 
-  <style>
-    .card-container {
-      display: flex;
-      gap: 2rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 2rem;
-    }
+<style>
+  .card-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  .card {
+    background: rgba(0, 242, 96, 0.15);
+    border: 2px solid #00f260;
+    border-radius: 20px;
+    padding: 2rem;
+    width: 260px;
+    color: #111;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 8px 20px rgba(0, 242, 96, 0.2);
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  .card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 242, 96, 0.4);
+    background: rgba(0, 242, 96, 0.3);
+    color: #000;
+  }
+
+  .card h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1.3rem;
+  }
+
+  .card p {
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 600px) {
     .card {
-      background: rgba(0, 242, 96, 0.15);
-      border: 2px solid #00f260;
-      border-radius: 15px;
-      padding: 2rem;
-      width: 250px;
-      color: #111;
-      text-align: center;
-      text-decoration: none;
-      box-shadow: 0 8px 20px rgba(0, 242, 96, 0.2);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      width: 90%;
     }
-    .card:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 12px 30px rgba(0, 242, 96, 0.4);
-      background: rgba(0, 242, 96, 0.3);
-      color: #000;
-    }
-    .card h3 {
-      margin-bottom: 0.5rem;
-    }
-  </style>
+  }
+</style>
 {% endblock %}
+

@@ -1,108 +1,92 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const startBtn = document.getElementById("startQuizBtn");
-  if (startBtn) {
-    startBtn.addEventListener("click", getQuiz);
-  }
+// ------------------- Quiz State -------------------
+const quizState = {
+  data: [],
+  index: 0,
+  score: 0,
+  sessionId: null,
+  timer: null,
+  timePerQuestion: 30
+};
 
-  const submitBtn = document.getElementById("submitAnswerBtn");
-  if (submitBtn) {
-    submitBtn.addEventListener("click", submitAnswer);
-  }
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("startQuizBtn")?.addEventListener("click", getQuiz);
+  document.getElementById("submitAnswerBtn")?.addEventListener("click", submitAnswer);
+  setupKeyboardShortcuts();
 });
 
-let quizData = [];
-let currentQuestionIndex = 0;
-let score = 0;
-window.sessionId = null;
-
-// Read CSRF token from meta tag (adjust if different)
-const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : null;
-
-function getQuiz() {
-  const topicElem = document.getElementById("topic");
-  const topic = topicElem ? topicElem.value.trim() : "";
-  const numQuestionsField = document.getElementById("numQuestions");
-  let numQuestions = numQuestionsField ? numQuestionsField.value.trim() : "5";
+// ------------------- Fetch Quiz -------------------
+async function getQuiz() {
+  const topic = document.getElementById("topic")?.value.trim();
+  let numQuestions = parseInt(document.getElementById("numQuestions")?.value.trim() || "5", 10);
 
   if (!topic) {
     alert("Please select a topic.");
     return;
   }
-
-  if (!numQuestions || isNaN(numQuestions) || numQuestions < 1) {
-    numQuestions = "5";
-  }
+  if (isNaN(numQuestions) || numQuestions < 1) numQuestions = 5;
 
   showLoading(true);
   resetQuizUI();
 
-  fetch("/quiz/fetch", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
-    },
-    body: JSON.stringify({
-      topic: topic,
-      num_questions: parseInt(numQuestions, 10)
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
+  try {
+    const res = await fetch("/quiz/fetch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
+      },
+      body: JSON.stringify({ topic, num_questions: numQuestions })
+    });
+
+    const data = await res.json();
     showLoading(false);
 
     if (data.error) {
       alert(data.error);
       return;
     }
-
-    if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
+    if (!Array.isArray(data.questions) || data.questions.length === 0) {
       alert("No questions received.");
       return;
     }
 
-    quizData = data.questions;
-    currentQuestionIndex = 0;
-    score = 0;
-    window.sessionId = data.session_id;
+    quizState.data = data.questions;
+    quizState.index = 0;
+    quizState.score = 0;
+    quizState.sessionId = data.session_id;
 
     renderQuestion();
-  })
-  .catch(err => {
+  } catch (err) {
     showLoading(false);
-    console.error("Fetch quiz error:", err);
     alert("Error fetching quiz questions.");
-  });
+    console.error(err);
+  }
 }
 
+// ------------------- Render Question -------------------
 function renderQuestion() {
-  if (currentQuestionIndex >= quizData.length) {
+  clearInterval(quizState.timer);
+
+  if (quizState.index >= quizState.data.length) {
     showFinalScore();
     return;
   }
 
-  const questionObj = quizData[currentQuestionIndex];
-  if (!questionObj) {
-    alert("Question data missing.");
+  const question = quizState.data[quizState.index];
+  if (!question) {
+    alert("Invalid question.");
     return;
   }
 
-  document.getElementById("questionText").innerText = questionObj.question || "";
-
+  document.getElementById("questionText").innerText = question.question;
   const optionsDiv = document.getElementById("options");
   optionsDiv.innerHTML = "";
 
-  // Assuming options is an object with keys "A", "B", "C", "D"
-  const options = questionObj.options;
-  if (!options || typeof options !== "object") {
-    alert("Question options are invalid.");
-    return;
-  }
-
-  Object.entries(options).forEach(([key, value]) => {
+  Object.entries(question.options).forEach(([key, value]) => {
     const wrapper = document.createElement("div");
-    wrapper.className = "form-check";
+    wrapper.className = "form-check option-wrapper";
 
     const radio = document.createElement("input");
     radio.type = "radio";
@@ -110,6 +94,8 @@ function renderQuestion() {
     radio.name = "answer";
     radio.value = key;
     radio.id = `option_${key}`;
+    radio.setAttribute("aria-label", `${key} ${value}`);
+    radio.disabled = false;
 
     const label = document.createElement("label");
     label.className = "form-check-label";
@@ -121,35 +107,51 @@ function renderQuestion() {
     optionsDiv.appendChild(wrapper);
   });
 
+  // Highlight selected option on change
+  document.querySelectorAll('.form-check-input').forEach(input => {
+    input.addEventListener('change', () => {
+      document.querySelectorAll('.option-wrapper').forEach(opt => opt.classList.remove("selected"));
+      input.parentElement.classList.add("selected");
+    });
+  });
+
   document.getElementById("questionArea").style.display = "block";
   document.getElementById("result").innerHTML = "";
   document.getElementById("finalScore").innerHTML = "";
+  updateProgress();
+  startTimer(quizState.timePerQuestion);
 }
 
-function submitAnswer() {
+// ------------------- Submit Answer -------------------
+async function submitAnswer() {
+  clearInterval(quizState.timer);
+
   const selected = document.querySelector('input[name="answer"]:checked');
   if (!selected) {
     alert("Please select an answer!");
     return;
   }
 
+  disableOptions();
+
   const answer = selected.value;
   showLoading(true);
 
-  fetch("/answer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
-    },
-    body: JSON.stringify({
-      answer: answer,
-      session_id: window.sessionId,
-      question_id: quizData[currentQuestionIndex].id
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
+  try {
+    const res = await fetch("/answer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {})
+      },
+      body: JSON.stringify({
+        answer,
+        session_id: quizState.sessionId,
+        question_id: quizState.data[quizState.index].id
+      })
+    });
+
+    const data = await res.json();
     showLoading(false);
 
     if (data.error) {
@@ -158,46 +160,102 @@ function submitAnswer() {
     }
 
     if (data.result === "correct") {
-      score++;
-      document.getElementById("result").innerHTML =
-        `<span style="color:green; font-weight:bold;">✅ Correct!</span><br>${data.explanation || ""}`;
+      quizState.score++;
+      document.getElementById("result").innerHTML = `<span style="color:green; font-weight:bold;">✅ Correct!</span><br>${data.explanation || ""}`;
     } else {
-      document.getElementById("result").innerHTML =
-        `<span style="color:red; font-weight:bold;">❌ Incorrect.</span><br>Correct Answer: <strong>${data.correct_answer}</strong><br>${data.explanation || ""}`;
+      document.getElementById("result").innerHTML = `<span style="color:red; font-weight:bold;">❌ Incorrect.</span><br>Correct Answer: <strong>${data.correct_answer}</strong><br>${data.explanation || ""}`;
     }
 
-    // Wait 1.5 seconds before next question
     setTimeout(() => {
-      currentQuestionIndex++;
-      if (currentQuestionIndex < quizData.length) {
-        renderQuestion();
-      } else {
-        showFinalScore();
-      }
+      quizState.index++;
+      renderQuestion();
     }, 1500);
-  })
-  .catch(err => {
+  } catch (err) {
     showLoading(false);
-    console.error("Submit answer error:", err);
     alert("Error submitting answer.");
-  });
+    console.error(err);
+  }
+}
+
+// ------------------- Disable Options after Submit -------------------
+function disableOptions() {
+  const allOptions = document.querySelectorAll('input[name="answer"]');
+  allOptions.forEach(input => input.disabled = true);
+}
+
+// ------------------- Utilities -------------------
+function resetQuizUI() {
+  document.getElementById("questionArea").style.display = "none";
+  document.getElementById("result").innerHTML = "";
+  document.getElementById("finalScore").innerHTML = "";
+  const progress = document.getElementById("progressBar");
+  if (progress) progress.value = 0;
+  clearInterval(quizState.timer);
+  document.getElementById("questionTimer").innerText = "";
 }
 
 function showFinalScore() {
   document.getElementById("questionArea").style.display = "none";
   document.getElementById("result").innerHTML = "";
-  document.getElementById("finalScore").innerHTML = `<h3>Your score: ${score} / ${quizData.length}</h3>`;
+  document.getElementById("finalScore").innerHTML =
+    `<h3>Your score: ${quizState.score} / ${quizState.data.length}</h3>
+    <button onclick="getQuiz()" class="btn btn-primary mt-3">Retry Quiz</button>`;
 }
 
 function showLoading(show) {
   const loader = document.getElementById("loading");
-  if (loader) {
-    loader.style.display = show ? "block" : "none";
+  if (loader) loader.style.display = show ? "block" : "none";
+}
+
+function updateProgress() {
+  const progress = document.getElementById("progressBar");
+  if (progress) {
+    progress.max = quizState.data.length;
+    progress.value = quizState.index + 1;
   }
 }
 
-function resetQuizUI() {
-  document.getElementById("questionArea").style.display = "none";
-  document.getElementById("result").innerHTML = "";
-  document.getElementById("finalScore").innerHTML = "";
+function startTimer(seconds) {
+  const timerDisplay = document.getElementById("questionTimer");
+  timerDisplay.innerText = `${seconds}s`;
+  quizState.timer = setInterval(() => {
+    seconds--;
+    timerDisplay.innerText = `${seconds}s`;
+    if (seconds <= 0) {
+      clearInterval(quizState.timer);
+      submitAnswer();
+    }
+  }, 1000);
 }
+
+function setupKeyboardShortcuts() {
+  document.addEventListener("keydown", (e) => {
+    const key = e.key.toUpperCase();
+    if (["A", "B", "C", "D"].includes(key)) {
+      const option = document.getElementById(`option_${key}`);
+      if (option && !option.disabled) option.checked = true;
+    } else if (e.key === "Enter") {
+      submitAnswer();
+    }
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,21 +1,45 @@
 {% extends "layout.html" %}
 {% block title %}Quiz Results{% endblock %}
+
 {% block content %}
+<div class="quiz-card mx-auto mt-4" style="max-width: 800px;">
+  <h3 class="text-center">Quiz Results</h3>
+  <p class="text-center">Topic: <strong>{{ topic }}</strong> | Level: <strong>{{ level }}</strong></p>
+  <h5 class="text-center mb-4">Your Score: {{ score }} / {{ total }}</h5>
 
-<h2>Quiz Results ({{ topic }} - {{ level }})</h2>
-<p>Your Score: {{ score }}/{{ total }}</p>
+  {% for result in results %}
+    <div class="mb-4">
+      <p><strong>Q{{ loop.index }}:</strong> {{ result.question }}</p>
 
-{% for r in results %}
-  <div class="question-result">
-    <p><strong>Q{{ loop.index }}:</strong> {{ r.question }}</p>
-    <p>Your Answer: {{ r.user_answer }}</p>
-    <p>Correct Answer: {{ r.correct_answer }}</p>
-    <p>{% if r.is_correct %}<span style="color:green;">Correct ✅</span>{% else %}<span style="color:red;">Wrong ❌</span>{% endif %}</p>
-    <p><em>Explanation:</em> {{ r.explanation }}</p>
+      <ul class="list-group">
+        {% for key, val in result.options.items() %}
+          <li class="list-group-item 
+            {% if key == result.correct_answer %}
+              list-group-item-success
+            {% elif key == result.user_answer %}
+              list-group-item-danger
+            {% endif %}
+          ">
+            {{ key }}) {{ val }}
+            {% if key == result.correct_answer %}
+              <span class="badge bg-success float-end">Correct</span>
+            {% elif key == result.user_answer %}
+              <span class="badge bg-danger float-end">Your Answer</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+
+      <p class="mt-2"><strong>Explanation:</strong> {{ result.explanation }}</p>
+    </div>
     <hr>
+  {% endfor %}
+
+  <div class="text-center mt-4">
+    <a href="{{ url_for('quiz') }}" class="btn btn-primary">Take Another Quiz</a>
   </div>
-{% endfor %}
-
-<a href="{{ url_for('quiz') }}" class="btn btn-primary">Take Another Quiz</a>
-
+</div>
 {% endblock %}
+
+
+

@@ -2,54 +2,68 @@ import os
 import uuid
 import random
 from datetime import datetime, timezone
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
+from flask import (Flask, request, jsonify, render_template, redirect, url_for, flash, session)
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from flask_wtf import CSRFProtect
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+)
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from redis import Redis
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
-from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
-from flask_wtf.csrf import generate_csrf
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired
+
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(message="Username is required")])
+    password = PasswordField('Password', validators=[DataRequired(message="Password is required")])
+    submit = SubmitField('Login')
+
 
 load_dotenv()
 
-redis_client = Redis(host='localhost', port=6379)
-
-
+# Initialize Flask app
 app = Flask(__name__)
-
-
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or os.urandom(24)
-
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
 
-csrf = CSRFProtect()
-csrf.init_app(app)
+# Rate limiter (example: limit login to 5 per minute)
+limiter = Limiter(app=app, key_func=get_remote_address, storage_uri="memory://")
 
-
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    storage_uri="memory://"
-)
-
+# Database config (SQLite for simplicity)
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'quiz_app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
-
+# Login manager setup
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
+# Redis client (if you want to use Redis, configure here)
+# from redis import Redis
+# redis_client = Redis(host='localhost', port=6379)
+
+# OpenAI Client setup
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+else:
+    client = None
+    print("WARNING: OpenAI API key not found. AI generation disabled.")
+
+# In-memory quiz sessions store
+quiz_sessions = {}
+
+# Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -62,23 +76,12 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
-# Initialize OpenAI client
-api_key = os.environ.get("OPENAI_API_KEY")
-print("API Key:", api_key)
-
-if api_key:
-    client = OpenAI(api_key=api_key)
-else:
-    client = None
-
-# In-memory store for active quiz sessions
-quiz_sessions = {}
-
+# Generate prompt for OpenAI
 def generate_ssc_prompt(topic, level="Medium", num_options=4):
     return f"""
 You are an expert question setter for the SSC CGL exam in India.
 
-Please generate **one single multiple-choice question** for the SSC CGL exam on the topic: \"{topic}\". 
+Please generate **one single multiple-choice question** for the SSC CGL exam on the topic: \"{topic}\".
 
 - The question should be suitable for the {level} difficulty level.
 - Provide exactly {num_options} options, each uniquely labeled as A), B), C), D).
@@ -107,8 +110,11 @@ Explanation: New Delhi is the capital of India and houses important government i
 Now generate the question.
 """
 
-      
+
 def generate_ssc_question_openai(topic, level="Medium"):
+    if client is None:
+        raise RuntimeError("OpenAI client not initialized. Set your OPENAI_API_KEY.")
+
     prompt = generate_ssc_prompt(topic, level)
 
     completion = client.chat.completions.create(
@@ -141,7 +147,7 @@ def generate_ssc_question_openai(topic, level="Medium"):
         else:
             answer_letter = raw_answer
 
-        answer = answer_letter.strip()
+        answer = answer_letter.strip().upper()
 
         if answer not in options:
             raise ValueError(f"Invalid answer option: '{raw_answer}'")
@@ -155,232 +161,20 @@ def generate_ssc_question_openai(topic, level="Medium"):
         print("❌ Error parsing AI response:", e)
         raise ValueError("Failed to parse AI response")
 
-@app.after_request
-def apply_csp(response):
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
-    return response
 
-
+# Inject CSRF token into templates
 @app.context_processor
 def inject_csrf_token():
     return dict(csrf_token=generate_csrf())
 
+
+# Inject current datetime for templates if needed
 @app.context_processor
 def inject_now():
     return {'now': datetime.now(timezone.utc)}
 
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = generate_password_hash(request.form['password'])
-
-        # Check if email already exists
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('Email already registered. Please log in.', 'warning')
-            return redirect(url_for('login'))
-        existing_username = User.query.filter_by(username=username).first()
-        if existing_username:
-            flash('Username already taken. Please choose another.', 'warning')
-            return redirect(url_for('register'))
-
-
-
-        new_user = User(username=username, email=email, password=password)
-        db.session.add(new_user)
-        db.session.commit()
-
-        flash('Registration successful. Please log in.', 'success')
-        return redirect(url_for('login'))
-
-    return render_template('register.html')
-
-@limiter.limit("5 per minute")
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            flash("Logged in successfully!", "success")
-            return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid credentials.", "danger")
-            return redirect(url_for("login"))
-
-    return render_template("login.html",)
-
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for("login"))
-
-@app.route("/")
-@login_required
-def home():
-    return redirect(url_for('dashboard'))
-
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    return render_template("dashboard.html")
-
-@app.route("/practice_papers")
-@login_required
-def practice_papers():
-    return render_template("practice_papers.html")
-
-
-@app.route('/quiz')
-@login_required
-def quiz():
-    # For example, quiz data prepared here or fetched from session/db
-    topic = "General Knowledge"
-    level = "Easy"
-    questions = [
-        {
-            "question": "Who is the first woman Prime Minister of India?",
-            "options": {"A": "Pratibha Patil", "B": "Sonia Gandhi", "C": "Indira Gandhi", "D": "Sushma Swaraj"},
-            "id": 1
-        },
-        {
-            "question": "What is the capital of France?",
-            "options": {"A": "Berlin", "B": "London", "C": "Paris", "D": "Madrid"},
-            "id": 2
-        }
-    ]
-
-    return render_template('quiz_questions.html', topic=topic, level=level, questions=questions)
-
-
-@app.route("/quiz/questions")
-@login_required
-def quiz_questions():
-    quiz_data = session.get("quiz_data")
-
-    if not quiz_data:
-        return redirect(url_for("quiz"))  # Fallback if session is missing
-
-    topic = quiz_data.get("topic", "General")
-    level = quiz_data.get("level", "Easy")
-    num_questions = int(quiz_data.get("num_questions", 5))
-
-    try:
-        questions = []
-        for _ in range(num_questions):
-            q, opts, ans, exp = generate_ssc_question_openai(topic, level)
-            questions.append({
-                "question": q,
-                "options": opts,
-                "answer": ans,
-                "explanation": exp
-            })
-    except Exception as e:
-        return f"Error generating questions: {str(e)}"
-
-    return render_template("quiz_questions.html", topic=topic, level=level, questions=questions)
-
-@app.route("/quiz/fetch", methods=["POST"])
-@login_required
-def fetch_quiz():
-    data = request.get_json()
-    topic = data.get("topic")
-    level = data.get("level", "Medium")
-
-    if not topic:
-        return jsonify({"error": "Topic is required."}), 400
-
-    try:
-        question, options, answer, explanation = generate_ssc_question_openai(topic, level)
-
-        session_id = "session_" + str(random.randint(1000, 9999))
-
-        return jsonify({
-            "session_id": session_id,
-            "questions": [
-                {
-                    "id": session_id + "_q1",
-                    "question": question,
-                    "options": options,
-                    "correct_answer": answer,
-                    "explanation": explanation
-                }
-            ]
-        })
-
-    except Exception as e:
-        return jsonify({"error": "Failed to generate question from AI.", "details": str(e)}), 500
-
-
-@login_required
-@app.route("/answer", methods=["POST"])
-def check_answer():
-    data = request.get_json()
-    question_id = data.get("question_id")
-    selected_answer = data.get("answer")
-    session_id = data.get("session_id")
-
-    if not session_id or not question_id:
-        return jsonify({"error": "Session ID and Question ID are required."}), 400
-
-    session_data = quiz_sessions.get(session_id)
-    if not session_data:
-        return jsonify({"error": "Invalid or expired session ID."}), 400
-
-    question_data = session_data.get(question_id)
-    if not question_data:
-        return jsonify({"error": "Invalid question ID for this session."}), 400
-
-    correct_answer = question_data["correct_answer"]
-    explanation = question_data["explanation"]
-
-    result = "correct" if selected_answer == correct_answer else "incorrect"
-
-    return jsonify({
-        "result": result,
-        "correct_answer": correct_answer,
-        "explanation": explanation
-    })
-
-@app.route("/submit_quiz", methods=["POST"])
-def submit_quiz():
-    if "questions" not in session:
-        return redirect(url_for("quiz"))
-
-    questions = session.get("questions", [])
-    topic = session.get("topic", "Unknown")
-    level = session.get("level", "Easy")
-
-    user_answers = []
-    score = 0
-    results = []
-
-    for i, q in enumerate(questions):
-        user_answer = request.form.get(f"q{i}")
-        correct_answer = q.get("answer")
-
-        is_correct = user_answer == correct_answer
-        if is_correct:
-            score += 1
-
-        results.append({
-            "question": q.get("question"),
-            "options": q.get("options"),
-            "user_answer": user_answer,
-            "correct_answer": correct_answer,
-            "explanation": q.get("explanation", "No explanation available."),
-            "is_correct": is_correct
-        })
-
-    return render_template("quiz_result.html", results=results, score=score, total=len(questions), topic=topic, level=level)
-
+# Content Security Policy headers
 @app.after_request
 def add_csp_headers(response):
     csp = (
@@ -393,8 +187,227 @@ def add_csp_headers(response):
     return response
 
 
+# User registration
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'])
+
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            flash('Email already registered. Please log in.', 'warning')
+            return redirect(url_for('login'))
+
+        existing_username = User.query.filter_by(username=username).first()
+        if existing_username:
+            flash('Username already taken. Please choose another.', 'warning')
+            return redirect(url_for('register'))
+
+        new_user = User(username=username, email=email, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Registration successful. Please log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+
+# User login
+@limiter.limit("5 per minute")
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and check_password_hash(user.password, form.password.data):
+            login_user(user)
+            flash('Logged in successfully.', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('dashboard'))
+        else:
+            flash('Invalid username or password.', 'danger')
+    return render_template('login.html', form=form)
+
+# Logout route
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
+# Dashboard route
+@app.route("/")
+@login_required
+def home():
+    return redirect(url_for('dashboard'))
+
+
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/quiz", methods=["GET", "POST"])
+@login_required
+def quiz():
+    error = None
+    questions = None
+    topic = None
+    level = None
+    num_questions = 5
+
+    if request.method == "POST":
+        topic = request.form.get("topic")
+        level = request.form.get("level")
+        num_questions = request.form.get("num_questions", 5, type=int)
+
+        if not topic or not level:
+            error = "Please select both topic and difficulty level."
+        else:
+            # Here you might generate questions or redirect to quiz page with questions
+            # For example, generate dummy questions or call your question generator function
+            # I'll keep it simple and just render the form again
+            questions = []  # Replace with actual question generation logic
+
+    return render_template(
+        "quiz.html",
+        error=error,
+        questions=questions,
+        topic=topic,
+        level=level,
+        num_questions=num_questions,
+    )
+
+
+@app.route("/practice_papers")
+@login_required
+def practice_papers():
+    papers_folder = os.path.join(app.static_folder, "papers")
+    if not os.path.exists(papers_folder):
+        all_papers = []
+    else:
+        all_papers = [
+            {"title": os.path.splitext(f)[0].replace('_', ' ').title(), "filename": f}
+            for f in os.listdir(papers_folder)
+            if f.lower().endswith(".pdf")
+        ]
+    # Pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 5  # number of papers per page
+    total_papers = len(all_papers)
+    total_pages = (total_papers + per_page - 1) // per_page  # ceil division
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    papers_to_show = all_papers[start:end]
+
+    return render_template(
+        "practice_papers.html",
+        papers=papers_to_show,
+        page=page,
+        total_pages=total_pages
+    )
+
+
+# Quiz fetch API - generates multiple questions and stores them in session
+@app.route("/quiz/fetch", methods=["POST"])
+@login_required
+def fetch_quiz():
+    data = request.get_json()
+    topic = data.get("topic")
+    level = data.get("level", "Medium")
+    num_questions = data.get("num_questions", 5)
+
+    if not topic:
+        return jsonify({"error": "Topic is required."}), 400
+
+    try:
+        num_questions = int(num_questions)
+    except:
+        num_questions = 5
+
+    questions_dict = {}
+    questions_list = []
+
+    try:
+        for i in range(num_questions):
+            question, options, answer, explanation = generate_ssc_question_openai(topic, level)
+            question_id = f"q{i+1}_{str(uuid.uuid4())[:8]}"
+            questions_dict[question_id] = {
+                "question": question,
+                "options": options,
+                "correct_answer": answer,
+                "explanation": explanation
+            }
+            # Send question without correct answer and explanation
+            questions_list.append({
+                "id": question_id,
+                "question": question,
+                "options": options
+            })
+    except Exception as e:
+        return jsonify({"error": "Failed to generate questions from AI.", "details": str(e)}), 500
+
+    session_id = f"session_{str(uuid.uuid4())}"
+    quiz_sessions[session_id] = {
+        "questions": questions_dict,
+        "user_answers": {}
+    }
+
+    return jsonify({
+        "session_id": session_id,
+        "questions": questions_list
+    })
+
+
+# Check answer API
+@app.route("/answer", methods=["POST"])
+@login_required
+def check_answer():
+    data = request.get_json()
+    question_id = data.get("question_id")
+    selected_answer = data.get("answer")
+    session_id = data.get("session_id")
+
+    if not session_id or not question_id or not selected_answer:
+        return jsonify({"error": "Missing parameters."}), 400
+
+    session_data = quiz_sessions.get(session_id)
+    if not session_data:
+        return jsonify({"error": "Invalid or expired session ID."}), 400
+
+    question_data = session_data["questions"].get(question_id)
+    if not question_data:
+        return jsonify({"error": "Invalid question ID for this session."}), 400
+
+    correct_answer = question_data["correct_answer"]
+    explanation = question_data["explanation"]
+
+    is_correct = (selected_answer.upper() == correct_answer.upper())
+
+    # Store user's answer for tracking if needed
+    session_data["user_answers"][question_id] = selected_answer.upper()
+
+    result = "correct" if is_correct else "incorrect"
+
+    return jsonify({
+        "result": result,
+        "correct_answer": correct_answer,
+        "explanation": explanation
+    })
+
+
+# Run app
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()  # This creates all tables based on your models
+        db.create_all()  # Create DB tables
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+

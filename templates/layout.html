@@ -128,10 +128,11 @@
       font-size: 0.9rem;
       user-select: none;
     }
-  </style>
+</style>
 </head>
 <body>
 
+  {% if current_user.is_authenticated %}
   <!-- Sidebar -->
   <nav id="sidebar" class="bg-dark">
     <div class="px-3 mb-4 text-center fs-4 fw-bold">
@@ -139,23 +140,17 @@
     </div>
     <ul class="nav flex-column px-2">
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a class="nav-link active" href="{{ url_for('dashboard') }}">Dashboard</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'practice_papers' %}active{% endif %}" href="{{ url_for('practice_papers') }}">Practice Papers</a>
+        <a class="nav-link" href="{{ url_for('practice_papers') }}">Practice Papers</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link {% if request.endpoint == 'quiz' %}active{% endif %}" href="{{ url_for('quiz') }}">Take Quiz</a>
+        <a class="nav-link" href="{{ url_for('quiz') }}">Take Quiz</a>
       </li>
-      {% if current_user.is_authenticated %}
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-        </li>
-      {% else %}
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-        </li>
-      {% endif %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+      </li>
     </ul>
   </nav>
 
@@ -164,6 +159,7 @@
     <button id="sidebarCollapse" aria-label="Toggle sidebar">&#9776;</button>
     <a class="navbar-brand" href="{{ url_for('dashboard') }}">Shichan Study Space</a>
   </header>
+  {% endif %}
 
   <!-- Page Content -->
   <main id="content" role="main" tabindex="-1">
@@ -195,10 +191,11 @@
     document.addEventListener('DOMContentLoaded', function () {
       const sidebar = document.getElementById('sidebar');
       const toggleBtn = document.getElementById('sidebarCollapse');
-
-      toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('active');
-      });
+      if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('active');
+        });
+      }
     });
   </script>
 

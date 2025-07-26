@@ -13,12 +13,23 @@ from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 from dotenv import load_dotenv
+from flask_mail import Mail, Message
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Email
+
+
+class RegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email(message="Invalid email address")])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Register')
+
 
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(message="Username is required")])
+    email = StringField('Email', validators=[DataRequired(), Email(message="Invalid email address")])
     password = PasswordField('Password', validators=[DataRequired(message="Password is required")])
     submit = SubmitField('Login')
 
@@ -67,9 +78,8 @@ quiz_sessions = {}
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-
+    email = db.Column(db.String(150), unique=True, nullable=False)   # add this
+    password_hash = db.Column(db.String(256), nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -186,33 +196,29 @@ def add_csp_headers(response):
     response.headers['Content-Security-Policy'] = csp
     return response
 
-
-# User registration
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = generate_password_hash(request.form['password'])
-
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('Email already registered. Please log in.', 'warning')
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    form = RegisterForm()
+    if form.validate_on_submit():
+        # Check if username or email already exists
+        if User.query.filter_by(username=form.username.data).first():
+            flash('Username already taken', 'warning')
+        elif User.query.filter_by(email=form.email.data).first():
+            flash('Email already registered', 'warning')
+        else:
+            hashed_pw = generate_password_hash(form.password.data)
+            new_user = User(
+                username=form.username.data,
+                email=form.email.data,
+                password_hash=hashed_pw
+            )
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Registration successful. Please login.', 'success')
             return redirect(url_for('login'))
-
-        existing_username = User.query.filter_by(username=username).first()
-        if existing_username:
-            flash('Username already taken. Please choose another.', 'warning')
-            return redirect(url_for('register'))
-
-        new_user = User(username=username, email=email, password=password)
-        db.session.add(new_user)
-        db.session.commit()
-
-        flash('Registration successful. Please log in.', 'success')
-        return redirect(url_for('login'))
-
-    return render_template('register.html')
+    return render_template('register.html', form=form)
 
 
 # User login
@@ -221,17 +227,16 @@ def register():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user and check_password_hash(user.password, form.password.data):
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
             flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('dashboard'))
         else:
-            flash('Invalid username or password.', 'danger')
+            flash('Invalid email or password', 'danger')
     return render_template('login.html', form=form)
 
 # Logout route

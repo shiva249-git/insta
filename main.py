@@ -2,24 +2,33 @@ import os
 import uuid
 import random
 from datetime import datetime, timezone
-from flask import (Flask, request, jsonify, render_template, redirect, url_for, flash, session)
+
+from flask import (
+    Flask, request, jsonify, render_template, redirect,
+    url_for, flash, session
+)
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
-    LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+    LoginManager, UserMixin, login_user, logout_user,
+    login_required, current_user
 )
-from flask_wtf.csrf import CSRFProtect, generate_csrf
+from flask_wtf import FlaskForm, CSRFProtect
+from flask_wtf.csrf import generate_csrf
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 from dotenv import load_dotenv
-from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired
 from wtforms.validators import DataRequired, Email
 
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+class DummyForm(FlaskForm):
+    pass  # You only need this if you're using {{ form.hidden_tag() }}
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -35,13 +44,10 @@ class RegisterForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Register')
 
-
 class LoginForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired(message="Username is required")])
-    email = StringField('Email', validators=[DataRequired(), Email(message="Invalid email address")])
+    user_identifier = StringField('Username or Email', validators=[DataRequired(message="Username or Email is required")])
     password = PasswordField('Password', validators=[DataRequired(message="Password is required")])
     submit = SubmitField('Login')
-
 
 load_dotenv()
 
@@ -84,12 +90,12 @@ else:
 quiz_sessions = {}
 
 # Models
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))  # This column must exist
-    
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -199,12 +205,13 @@ def inject_now():
 def add_csp_headers(response):
     csp = (
         "default-src 'self'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src https://fonts.gstatic.com; "
-        "script-src 'self';"
+        "style-src 'self'; "
+        "script-src 'self'; "
+        "font-src 'self' https://fonts.gstatic.com;"
     )
     response.headers['Content-Security-Policy'] = csp
     return response
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -232,21 +239,24 @@ def register():
 
 
 # User login
-@limiter.limit("5 per minute")
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        user_identifier = form.user_identifier.data
+        user = User.query.filter(
+            (User.username == user_identifier) | (User.email == user_identifier)
+        ).first()
         if user and check_password_hash(user.password_hash, form.password.data):
             login_user(user)
             flash('Logged in successfully.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('dashboard'))
         else:
-            flash('Invalid email or password', 'danger')
+            flash('Invalid username/email or password', 'danger')
     return render_template('login.html', form=form)
 
 # Logout route
@@ -264,14 +274,14 @@ def home():
     return redirect(url_for('dashboard'))
 
 
-@app.route("/dashboard")
+@app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template("dashboard.html")
-
+    return render_template('dashboard.html', user=current_user)
 @app.route("/quiz", methods=["GET", "POST"])
 @login_required
 def quiz():
+    form = DummyForm()
     error = None
     questions = None
     topic = None
@@ -286,20 +296,17 @@ def quiz():
         if not topic or not level:
             error = "Please select both topic and difficulty level."
         else:
-            # Here you might generate questions or redirect to quiz page with questions
-            # For example, generate dummy questions or call your question generator function
-            # I'll keep it simple and just render the form again
-            questions = []  # Replace with actual question generation logic
+            questions = []  # Your question generation logic here
 
     return render_template(
         "quiz.html",
+        form=form,              # <--- Pass the form here
         error=error,
         questions=questions,
         topic=topic,
         level=level,
         num_questions=num_questions,
     )
-
 
 @app.route("/practice_papers")
 @login_required

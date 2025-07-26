@@ -9,7 +9,8 @@
   <!-- Quiz Setup Form -->
   {% if not questions %}
   <form method="POST" action="{{ url_for('quiz') }}">
-    {{ csrf_token() }}
+    {{ form.hidden_tag() }}  <!-- ✅ This is the correct way -->
+
 
     <div class="mb-3">
       <label for="topic" class="form-label">Select Topic</label>

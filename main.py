@@ -18,6 +18,16 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired
 from wtforms.validators import DataRequired, Email
 
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+
+db = SQLAlchemy(app)
+
+
 
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -74,11 +84,12 @@ else:
 quiz_sessions = {}
 
 # Models
-class User(UserMixin, db.Model):
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)   # add this
-    password_hash = db.Column(db.String(256), nullable=False)
+    username = db.Column(db.String(64), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128))  # This column must exist
+    
 
 @login_manager.user_loader
 def load_user(user_id):

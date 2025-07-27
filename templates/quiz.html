@@ -2,15 +2,14 @@
 {% block title %}Quiz - Shichan Study Space{% endblock %}
 
 {% block content %}
-<div class="quiz-card mx-auto mt-4" style="max-width: 700px;">
+<div class="quiz-card mx-auto mt-4 custom-width">
 
   <h2 class="mb-4 text-center">Choose Quiz Settings</h2>
 
   <!-- Quiz Setup Form -->
   {% if not questions %}
   <form method="POST" action="{{ url_for('quiz') }}">
-    {{ form.hidden_tag() }}  <!-- ✅ This is the correct way -->
-
+    {{ form.hidden_tag() }}
 
     <div class="mb-3">
       <label for="topic" class="form-label">Select Topic</label>

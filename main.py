@@ -205,7 +205,7 @@ def inject_now():
 def add_csp_headers(response):
     csp = (
         "default-src 'self'; "
-        "style-src 'self'; "
+        "style-src 'self'; 'unsafe-inline';"
         "script-src 'self'; "
         "font-src 'self' https://fonts.gstatic.com;"
     )

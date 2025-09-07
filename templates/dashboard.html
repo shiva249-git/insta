@@ -1,69 +1,38 @@
 {% extends "layout.html" %}
-
 {% block title %}Dashboard - Shichan Study Space{% endblock %}
 
 {% block content %}
-<div class="container text-center my-5">
-  <h2 class="mb-2">Welcome, {{ current_user.username }}!</h2>
-  <p class="mb-4">Ready to start learning? Choose an option below:</p>
+<h2 class="mb-4 text-center">Welcome, {{ current_user.username }}</h2>
 
-  <div class="card-container">
-    <a href="{{ url_for('quiz') }}" class="card">
-      <h3>Take a Quiz</h3>
-      <p>Test your knowledge with fun quizzes.</p>
-    </a>
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Start Quiz</h5>
+        <p class="card-text">Take a new quiz to test your knowledge.</p>
+        <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100">Start</a>
+      </div>
+    </div>
+  </div>
 
-    <a href="{{ url_for('practice_papers') }}" class="card">
-      <h3>Practice Papers</h3>
-      <p>Sharpen your skills with previous year questions.</p>
-    </a>
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">View Scores</h5>
+        <p class="card-text">Check your previous quiz results and progress.</p>
+        <a href="{{ url_for('scores') }}" class="btn btn-success w-100">View</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title">Profile</h5>
+        <p class="card-text">Update your profile details and password.</p>
+        <a href="{{ url_for('profile') }}" class="btn btn-warning w-100">Edit</a>
+      </div>
+    </div>
   </div>
 </div>
-
-<style>
-  .card-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 2rem;
-  }
-
-  .card {
-    background: rgba(0, 242, 96, 0.15);
-    border: 2px solid #00f260;
-    border-radius: 20px;
-    padding: 2rem;
-    width: 260px;
-    color: #111;
-    text-align: center;
-    text-decoration: none;
-    box-shadow: 0 8px 20px rgba(0, 242, 96, 0.2);
-    transition: all 0.3s ease;
-    font-weight: 500;
-  }
-
-  .card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 30px rgba(0, 242, 96, 0.4);
-    background: rgba(0, 242, 96, 0.3);
-    color: #000;
-  }
-
-  .card h3 {
-    margin-bottom: 0.75rem;
-    font-size: 1.3rem;
-  }
-
-  .card p {
-    font-size: 0.95rem;
-  }
-
-  @media (max-width: 600px) {
-    .card {
-      width: 90%;
-    }
-  }
-</style>
 {% endblock %}
-

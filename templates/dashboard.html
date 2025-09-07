@@ -1,38 +1,31 @@
 {% extends "layout.html" %}
-{% block title %}Dashboard - Shichan Study Space{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center">Welcome, {{ current_user.username }}</h2>
+<div class="container mt-5">
+    <h2>Welcome, {{ user.username }}!</h2>
+    <p>Here are your available actions:</p>
 
-<div class="row g-3">
-  <div class="col-md-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h5 class="card-title">Start Quiz</h5>
-        <p class="card-text">Take a new quiz to test your knowledge.</p>
-        <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100">Start</a>
-      </div>
-    </div>
-  </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Take a Quiz</h5>
+                    <p class="card-text">Start a new quiz and test your knowledge.</p>
+                    <!-- Updated link to existing 'quiz' endpoint -->
+                    <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100">View</a>
+                </div>
+            </div>
+        </div>
 
-  <div class="col-md-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h5 class="card-title">View Scores</h5>
-        <p class="card-text">Check your previous quiz results and progress.</p>
-        <a href="{{ url_for('scores') }}" class="btn btn-success w-100">View</a>
-      </div>
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Other Action</h5>
+                    <p class="card-text">Another action or feature here.</p>
+                    <a href="#" class="btn btn-secondary w-100">Go</a>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <div class="col-md-4">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <h5 class="card-title">Profile</h5>
-        <p class="card-text">Update your profile details and password.</p>
-        <a href="{{ url_for('profile') }}" class="btn btn-warning w-100">Edit</a>
-      </div>
-    </div>
-  </div>
 </div>
 {% endblock %}

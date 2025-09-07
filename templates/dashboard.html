@@ -3,28 +3,18 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Welcome, {{ user.username }}!</h2>
-    <p>Here are your available actions:</p>
+    <p>Email: {{ user.email }}</p>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Take a Quiz</h5>
-                    <p class="card-text">Start a new quiz and test your knowledge.</p>
-                    <!-- Updated link to existing 'quiz' endpoint -->
-                    <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100">View</a>
-                </div>
-            </div>
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100">My Quizzes</a>
         </div>
-
-        <div class="col-md-6 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Other Action</h5>
-                    <p class="card-text">Another action or feature here.</p>
-                    <a href="#" class="btn btn-secondary w-100">Go</a>
-                </div>
-            </div>
+        <div class="col-md-4 mb-3">
+            <!-- Example placeholder if you want a Scores page -->
+            <a href="{{ url_for('quiz') }}" class="btn btn-success w-100">View Scores</a>
+        </div>
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">Logout</a>
         </div>
     </div>
 </div>

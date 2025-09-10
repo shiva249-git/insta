@@ -9,66 +9,123 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <!-- Custom Styles -->
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
+    body {
       font-family: 'Roboto', sans-serif;
-      background: radial-gradient(circle at top left, #f0f9ff, #a1c4fd);
-    }
-
-    /* Navbar */
-    .navbar-brand {
-      font-weight: 700;
-      font-size: 1.8rem;
-      color: #0d6efd !important;
-    }
-    .navbar-nav .nav-link {
-      font-size: 1.1rem;
-      margin-right: 10px;
-    }
-
-    /* Center content vertically */
-    .content-wrapper {
+      background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+      min-height: 100vh;
+      margin: 0;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: calc(100vh - 70px - 60px); /* subtract navbar and footer */
-      padding: 20px;
       flex-direction: column;
     }
 
-    /* Card style for forms */
-    .card-form {
+    /* Navbar */
+    .navbar-custom {
       background: rgba(255, 255, 255, 0.95);
-      border-radius: 15px;
-      padding: 40px 30px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-      max-width: 450px;
-      width: 100%;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-radius: 0 0 15px 15px;
     }
 
-    /* Buttons */
-    .btn-custom {
-      border-radius: 10px;
+    .navbar-custom .app-title {
+      font-weight: 900;
+      font-size: 2rem;
+      color: #007bff;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .navbar-custom a {
+      margin-left: 15px;
+      text-decoration: none;
+      color: #333;
       font-weight: 600;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+      font-size: 1.05rem;
+      padding: 8px 15px;
+      border-radius: 8px;
       transition: 0.3s;
     }
+
+    .navbar-custom a:hover {
+      color: #fff;
+      background-color: #007bff;
+    }
+
+    /* Centered card form for login/register */
+    .card-form {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 45px;
+      border-radius: 15px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 480px;
+      margin: auto;
+      margin-top: 80px;
+      text-align: center;
+    }
+
+    h1.app-title {
+      font-weight: 900;
+      font-size: 2.5rem;
+      color: #007bff;
+      text-align: center;
+      margin: 40px 0 20px 0;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      font-weight: 700;
+      font-size: 2rem;
+      margin-bottom: 25px;
+      color: #333;
+    }
+
+    .form-control {
+      font-size: 1.15rem;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+
+    .btn-custom {
+      font-size: 1.15rem;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
     .btn-custom:hover {
       transform: translateY(-2px);
-      box-shadow: 4px 4px 12px rgba(0,0,0,0.15);
     }
 
     footer {
-      background: #f8f9fa;
-      color: #495057;
+      margin-top: auto;
       text-align: center;
       padding: 15px;
-      border-top: 1px solid #dee2e6;
+      color: #333;
+    }
+
+    /* Adjust content area for dashboard after login */
+    .content {
+      flex: 1;
+      padding: 30px;
+      max-width: 1200px;
+      margin: auto;
+      width: 100%;
+    }
+
+    /* Flash messages */
+    .alert {
+      font-size: 1rem;
+      text-align: center;
     }
   </style>
 
@@ -76,32 +133,22 @@
 </head>
 <body>
 
-  <!-- Top Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
-    <div class="container">
-      <a class="navbar-brand" href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('login') }}">
-        Shichan Study Space
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          {% if current_user.is_authenticated %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('quiz') }}">Quiz</a></li>
-            <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('logout') }}">Logout</a></li>
-          {% else %}
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Register</a></li>
-          {% endif %}
-        </ul>
+  <!-- Navbar -->
+  {% if current_user.is_authenticated %}
+    <div class="navbar-custom">
+      <div class="app-title">Shichan Study Space</div>
+      <div>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('quiz') }}">Quiz</a>
+        <a href="{{ url_for('practice_papers') }}">Practice Papers</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
       </div>
     </div>
-  </nav>
+  {% else %}
+    <h1 class="app-title">Shichan Study Space</h1>
+  {% endif %}
 
-  <!-- Main Content -->
-  <div class="content-wrapper">
+  <div class="content">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -117,9 +164,10 @@
   </div>
 
   <footer>
-    <p>© {{ now.year }} Shichan Study Space | Powered by Flask</p>
+    &copy; {{ now.year }} Shichan Study Space | Powered by Flask
   </footer>
 
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

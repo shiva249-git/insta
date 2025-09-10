@@ -1,39 +1,54 @@
 {% extends "layout.html" %}
+
 {% block title %}Quiz - Shichan Study Space{% endblock %}
 
+{% block head %}
+<style>
+  body {
+    background: linear-gradient(to right, #e0f7fa, #f1f8e9);
+  }
+  .quiz-card.custom-width {
+    max-width: 700px;
+  }
+  .quiz-card h2, .quiz-card h3 {
+    color: #333;
+    font-weight: 600;
+  }
+  .btn-lg {
+    font-size: 1.2rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="quiz-card mx-auto mt-4 custom-width p-4 bg-white rounded shadow">
+<div class="quiz-card mx-auto mt-5 p-4 bg-white rounded shadow custom-width">
 
   <h2 class="mb-4 text-center">Choose Quiz Settings</h2>
 
   {% if not questions %}
   <!-- Quiz Setup Form -->
   <form id="quiz-setup-form">
-    <!-- Topic Selection -->
     <div class="mb-3">
       <label for="topic" class="form-label">Select Topic</label>
       <select class="form-select" id="topic" required>
         <option value="" disabled selected>-- Choose Topic --</option>
-        {% for t in [
-          "General Knowledge", "Polity", "History", "Geography", "Economics",
-          "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
+        {% for t in ["General Knowledge","Polity","History","Geography","Economics",
+                     "Science","Mathematics","Current Affairs","Reasoning","English"] %}
           <option value="{{ t }}">{{ t }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Difficulty Level -->
     <div class="mb-3">
       <label for="level" class="form-label">Difficulty Level</label>
       <select class="form-select" id="level" required>
         <option value="" disabled selected>-- Choose Difficulty --</option>
-        {% for l in ["Easy", "Medium", "Hard"] %}
+        {% for l in ["Easy","Medium","Hard"] %}
           <option value="{{ l }}">{{ l }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Number of Questions -->
     <div class="mb-3">
       <label for="num_questions" class="form-label">Number of Questions</label>
       <input type="number" class="form-control" id="num_questions" min="1" max="20" value="5" required>
@@ -50,8 +65,7 @@
   <h3 class="mt-5 text-center">Quiz on {{ topic }} ({{ level }})</h3>
 
   <form method="POST" action="{{ url_for('submit_quiz') }}">
-    {{ csrf_token() }} <!-- Use global CSRF helper if enabled -->
-
+    {{ csrf_token() }}
     {% for q in questions %}
       <div class="mb-4">
         <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
@@ -75,54 +89,9 @@
     </div>
   </form>
   {% endif %}
-
 </div>
 {% endblock %}
 
-{% block head %}
-<style>
-  body {
-    background: linear-gradient(to right, #e0f7fa, #f1f8e9);
-  }
-  .quiz-card.custom-width {
-    max-width: 700px;
-  }
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const startBtn = document.getElementById("start-quiz-btn");
-  if (startBtn) {
-    startBtn.addEventListener("click", async () => {
-      const topic = document.getElementById("topic").value;
-      const level = document.getElementById("level").value;
-      const num_questions = document.getElementById("num_questions").value;
-
-      if (!topic || !level || !num_questions) {
-        alert("Please fill all fields.");
-        return;
-      }
-
-      try {
-        const response = await fetch("/quiz/fetch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic, level, num_questions })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          window.location.href = `/quiz/session/${data.session_id}`;
-        } else {
-          alert(data.error || "Failed to fetch quiz.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error fetching quiz.");
-      }
-    });
-  }
-});
-</script>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
 {% endblock %}

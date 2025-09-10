@@ -1,21 +1,28 @@
 {% extends "layout.html" %}
 
-{% block content %}
-<div class="container mt-5">
-    <h2>Welcome, {{ user.username }}!</h2>
-    <p>Email: {{ user.email }}</p>
+{% block title %}Dashboard - Shichan Study Space{% endblock %}
 
-    <div class="row mt-4">
-        <div class="col-md-4 mb-3">
-            <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100">My Quizzes</a>
-        </div>
-        <div class="col-md-4 mb-3">
-            <!-- Example placeholder if you want a Scores page -->
-            <a href="{{ url_for('quiz') }}" class="btn btn-success w-100">View Scores</a>
-        </div>
-        <div class="col-md-4 mb-3">
-            <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">Logout</a>
-        </div>
-    </div>
+{% block content %}
+<div class="text-center mb-5">
+  <h2 class="fw-bold">Welcome, {{ user.username }}!</h2>
+  <p class="text-light">Email: {{ user.email }}</p>
+</div>
+
+<div class="row justify-content-center g-4">
+  <div class="col-md-3">
+    <a href="{{ url_for('quiz') }}" class="btn btn-primary w-100 py-3 fs-5 shadow">
+       📝 My Quizzes
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{{ url_for('quiz') }}" class="btn btn-success w-100 py-3 fs-5 shadow">
+       📊 View Scores
+    </a>
+  </div>
+  <div class="col-md-3">
+    <a href="{{ url_for('logout') }}" class="btn btn-danger w-100 py-3 fs-5 shadow">
+       🔒 Logout
+    </a>
+  </div>
 </div>
 {% endblock %}

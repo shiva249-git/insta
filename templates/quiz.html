@@ -7,6 +7,7 @@
   <h2 class="mb-4 text-center">Choose Quiz Settings</h2>
 
   {% if not questions %}
+  <!-- Quiz Setup Form -->
   <form id="quiz-setup-form">
     <!-- Topic Selection -->
     <div class="mb-3">
@@ -45,10 +46,11 @@
   {% endif %}
 
   {% if questions %}
+  <!-- Quiz Questions -->
   <h3 class="mt-5 text-center">Quiz on {{ topic }} ({{ level }})</h3>
 
   <form method="POST" action="{{ url_for('submit_quiz') }}">
-    {{ form.csrf_token }}
+    {{ csrf_token() }} <!-- Use global CSRF helper if enabled -->
 
     {% for q in questions %}
       <div class="mb-4">
@@ -78,6 +80,15 @@
 {% endblock %}
 
 {% block head %}
+<style>
+  body {
+    background: linear-gradient(to right, #e0f7fa, #f1f8e9);
+  }
+  .quiz-card.custom-width {
+    max-width: 700px;
+  }
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const startBtn = document.getElementById("start-quiz-btn");
@@ -95,10 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         const response = await fetch("/quiz/fetch", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": "{{ form.csrf_token._value() }}"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ topic, level, num_questions })
         });
 

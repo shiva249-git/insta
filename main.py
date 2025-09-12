@@ -197,16 +197,39 @@ def home():
 def dashboard():
     return render_template('dashboard.html', user=current_user)
 
-@app.route("/quiz", methods=["GET", "POST"])
+@app.route("/quiz/submit/<session_id>", methods=["POST"])
 @login_required
-def quiz():
-    form = DummyForm()
-    error = None
-    questions = None
-    topic = request.form.get("topic")
-    level = request.form.get("level")
-    num_questions = request.form.get("num_questions", 5, type=int)
-    return render_template('quiz.html', form=form, error=error, questions=questions, topic=topic, level=level, num_questions=num_questions)
+def submit_quiz(session_id):
+    data = request.get_json()
+    answers = data.get("answers", {})
+
+    if session_id not in quiz_sessions:
+        return jsonify({"error": "Invalid session"}), 400
+
+    quiz_data = quiz_sessions[session_id]
+    questions = quiz_data["questions"]
+
+    score = 0
+    details = []
+
+    for qid, qdata in questions.items():
+        user_answer = answers.get(qid)
+        correct = (user_answer == qdata["correct_answer"])
+        if correct:
+            score += 1
+        details.append({
+            "question": qdata["question"],
+            "user_answer": user_answer,
+            "correct_answer": qdata["correct_answer"],
+            "explanation": qdata["explanation"]
+        })
+
+    return jsonify({
+        "score": score,
+        "total": len(questions),
+        "details": details
+    })
+
 
 @app.route("/quiz/fetch", methods=["POST"])
 @login_required
@@ -215,6 +238,7 @@ def fetch_quiz():
     topic = data.get("topic")
     level = data.get("level", "Medium")
     num_questions = int(data.get("num_questions", 5))
+
     if not topic:
         return jsonify({"error": "Topic is required."}), 400
 
@@ -236,9 +260,36 @@ def fetch_quiz():
                 "question": question,
                 "options": options
             })
-    except Exception as e:
-        return jsonify({"error": "Failed to generate questions from AI.", "details": str(e)}), 500
 
+    except Exception as e:
+        print("⚠️ AI generation failed, using fallback questions. Error:", e)
+
+        # --- Fallback demo questions ---
+        fallback_questions = [
+            {
+                "question": "What is the capital of India?",
+                "options": {"A": "Mumbai", "B": "Kolkata", "C": "New Delhi", "D": "Chennai"},
+                "correct_answer": "C",
+                "explanation": "New Delhi is the capital of India."
+            },
+            {
+                "question": "Who is known as the Father of the Nation in India?",
+                "options": {"A": "Mahatma Gandhi", "B": "Jawaharlal Nehru", "C": "Sardar Patel", "D": "B. R. Ambedkar"},
+                "correct_answer": "A",
+                "explanation": "Mahatma Gandhi is widely regarded as the Father of the Nation in India."
+            },
+        ]
+
+        for i, q in enumerate(fallback_questions, 1):
+            question_id = f"demo{i}_{str(uuid.uuid4())[:8]}"
+            questions_dict[question_id] = q
+            questions_list.append({
+                "id": question_id,
+                "question": q["question"],
+                "options": q["options"]
+            })
+
+    # Save session
     session_id = f"session_{str(uuid.uuid4())}"
     quiz_sessions[session_id] = {"questions": questions_dict, "user_answers": {}}
 

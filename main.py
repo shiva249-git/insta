@@ -197,10 +197,19 @@ def home():
 def dashboard():
     return render_template('dashboard.html', user=current_user)
 
+@app.route("/quiz", methods=["GET"])
+@login_required
+def quiz():
+    # Render the quiz setup page (quiz.html)
+    return render_template("quiz.html", questions=None, topic=None, level=None, num_questions=None)
+
+
+# --- Submit Quiz ---
 @app.route("/quiz/submit/<session_id>", methods=["POST"])
 @login_required
 def submit_quiz(session_id):
-    data = request.get_json()
+    """Handle quiz submission and calculate score."""
+    data = request.get_json() or {}
     answers = data.get("answers", {})
 
     if session_id not in quiz_sessions:
@@ -217,11 +226,13 @@ def submit_quiz(session_id):
         correct = (user_answer == qdata["correct_answer"])
         if correct:
             score += 1
+
         details.append({
             "question": qdata["question"],
             "user_answer": user_answer,
             "correct_answer": qdata["correct_answer"],
-            "explanation": qdata["explanation"]
+            "explanation": qdata["explanation"],
+            "is_correct": correct
         })
 
     return jsonify({
@@ -231,10 +242,12 @@ def submit_quiz(session_id):
     })
 
 
+# --- Fetch Quiz ---
 @app.route("/quiz/fetch", methods=["POST"])
 @login_required
 def fetch_quiz():
-    data = request.get_json()
+    """Generate a quiz based on topic, level, and number of questions."""
+    data = request.get_json() or {}
     topic = data.get("topic")
     level = data.get("level", "Medium")
     num_questions = int(data.get("num_questions", 5))
@@ -242,21 +255,22 @@ def fetch_quiz():
     if not topic:
         return jsonify({"error": "Topic is required."}), 400
 
-    questions_dict = {}
-    questions_list = []
+    questions_dict, questions_list = {}, []
 
     try:
+        # Generate AI-based questions
         for i in range(num_questions):
             question, options, answer, explanation = generate_ssc_question_openai(topic, level)
-            question_id = f"q{i+1}_{str(uuid.uuid4())[:8]}"
-            questions_dict[question_id] = {
+            qid = f"q{i+1}_{str(uuid.uuid4())[:8]}"
+
+            questions_dict[qid] = {
                 "question": question,
                 "options": options,
                 "correct_answer": answer,
                 "explanation": explanation
             }
             questions_list.append({
-                "id": question_id,
+                "id": qid,
                 "question": question,
                 "options": options
             })
@@ -264,7 +278,7 @@ def fetch_quiz():
     except Exception as e:
         print("⚠️ AI generation failed, using fallback questions. Error:", e)
 
-        # --- Fallback demo questions ---
+        # Fallback demo questions
         fallback_questions = [
             {
                 "question": "What is the capital of India?",
@@ -277,23 +291,29 @@ def fetch_quiz():
                 "options": {"A": "Mahatma Gandhi", "B": "Jawaharlal Nehru", "C": "Sardar Patel", "D": "B. R. Ambedkar"},
                 "correct_answer": "A",
                 "explanation": "Mahatma Gandhi is widely regarded as the Father of the Nation in India."
-            },
+            }
         ]
 
         for i, q in enumerate(fallback_questions, 1):
-            question_id = f"demo{i}_{str(uuid.uuid4())[:8]}"
-            questions_dict[question_id] = q
+            qid = f"demo{i}_{str(uuid.uuid4())[:8]}"
+            questions_dict[qid] = q
             questions_list.append({
-                "id": question_id,
+                "id": qid,
                 "question": q["question"],
                 "options": q["options"]
             })
 
-    # Save session
+    # Save quiz session
     session_id = f"session_{str(uuid.uuid4())}"
-    quiz_sessions[session_id] = {"questions": questions_dict, "user_answers": {}}
+    quiz_sessions[session_id] = {
+        "questions": questions_dict,
+        "user_answers": {}
+    }
 
-    return jsonify({"session_id": session_id, "questions": questions_list})
+    return jsonify({
+        "session_id": session_id,
+        "questions": questions_list
+    })
 
 @app.route("/answer", methods=["POST"])
 @login_required

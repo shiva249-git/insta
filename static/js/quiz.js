@@ -1,8 +1,14 @@
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("quiz.js loaded ✅");
+
   const startBtn = document.getElementById("start-quiz-btn");
 
   if (startBtn) {
+    console.log("Start button found ✅");
+
     startBtn.addEventListener("click", async function () {
+      console.log("Start Quiz button clicked ✅");
+
       const topic = document.getElementById("topic").value;
       const level = document.getElementById("level").value;
       const numQuestions = document.getElementById("num_questions").value;
@@ -26,13 +32,13 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         const data = await response.json();
+        console.log("Server response ✅", data);
 
         if (data.error) {
           alert("Error: " + data.error);
           return;
         }
 
-        // Replace the quiz setup form with generated questions
         renderQuiz(data.questions, data.session_id, topic, level);
 
       } catch (err) {
@@ -40,6 +46,8 @@ document.addEventListener("DOMContentLoaded", function () {
         alert("Something went wrong while starting the quiz.");
       }
     });
+  } else {
+    console.warn("⚠️ Start button not found on page!");
   }
 
   function renderQuiz(questions, sessionId, topic, level) {
@@ -88,13 +96,13 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         const result = await response.json();
+        console.log("Quiz submitted ✅", result);
 
         if (result.error) {
           alert("Error: " + result.error);
           return;
         }
 
-        // Show score + explanations
         showResults(result);
 
       } catch (err) {

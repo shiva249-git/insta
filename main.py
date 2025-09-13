@@ -246,74 +246,61 @@ def submit_quiz(session_id):
 @app.route("/quiz/fetch", methods=["POST"])
 @login_required
 def fetch_quiz():
-    """Generate a quiz based on topic, level, and number of questions."""
-    data = request.get_json() or {}
-    topic = data.get("topic")
-    level = data.get("level", "Medium")
-    num_questions = int(data.get("num_questions", 5))
-
-    if not topic:
-        return jsonify({"error": "Topic is required."}), 400
-
-    questions_dict, questions_list = {}, []
-
     try:
-        # Generate AI-based questions
-        for i in range(num_questions):
-            question, options, answer, explanation = generate_ssc_question_openai(topic, level)
-            qid = f"q{i+1}_{str(uuid.uuid4())[:8]}"
+        data = request.get_json(force=True)
+        topic = data.get("topic", "").strip()
+        level = data.get("level", "Medium").strip()
+        num_questions = int(data.get("num_questions", 5))
 
-            questions_dict[qid] = {
-                "question": question,
-                "options": options,
-                "correct_answer": answer,
-                "explanation": explanation
-            }
-            questions_list.append({
-                "id": qid,
-                "question": question,
-                "options": options
-            })
+        if not topic:
+            return jsonify({"error": "Topic is required."}), 400
+
+        questions_dict = {}
+        questions_list = []
+
+        # --- Try AI generation ---
+        for i in range(num_questions):
+            try:
+                question, options, answer, explanation = generate_ssc_question_openai(topic, level)
+                question_id = f"q{i+1}_{str(uuid.uuid4())[:8]}"
+                questions_dict[question_id] = {
+                    "question": question,
+                    "options": options,
+                    "correct_answer": answer,
+                    "explanation": explanation
+                }
+                questions_list.append({
+                    "id": question_id,
+                    "question": question,
+                    "options": options
+                })
+            except Exception as e:
+                print(f"⚠️ AI failed for question {i+1}: {e}")
+                break  # Stop AI if it fails
+
+        # --- Fallback DB questions if AI fails or not enough questions ---
+        if len(questions_list) < num_questions:
+            from your_db_module import get_db_questions  # Replace with your actual DB function
+            remaining = num_questions - len(questions_list)
+            db_questions = get_db_questions(topic, remaining)
+            for q in db_questions:
+                question_id = f"db_{str(uuid.uuid4())[:8]}"
+                questions_dict[question_id] = q
+                questions_list.append({
+                    "id": question_id,
+                    "question": q["question"],
+                    "options": q["options"]
+                })
+
+        # --- Save session ---
+        session_id = f"session_{str(uuid.uuid4())}"
+        quiz_sessions[session_id] = {"questions": questions_dict, "user_answers": {}}
+
+        return jsonify({"session_id": session_id, "questions": questions_list})
 
     except Exception as e:
-        print("⚠️ AI generation failed, using fallback questions. Error:", e)
-
-        # Fallback demo questions
-        fallback_questions = [
-            {
-                "question": "What is the capital of India?",
-                "options": {"A": "Mumbai", "B": "Kolkata", "C": "New Delhi", "D": "Chennai"},
-                "correct_answer": "C",
-                "explanation": "New Delhi is the capital of India."
-            },
-            {
-                "question": "Who is known as the Father of the Nation in India?",
-                "options": {"A": "Mahatma Gandhi", "B": "Jawaharlal Nehru", "C": "Sardar Patel", "D": "B. R. Ambedkar"},
-                "correct_answer": "A",
-                "explanation": "Mahatma Gandhi is widely regarded as the Father of the Nation in India."
-            }
-        ]
-
-        for i, q in enumerate(fallback_questions, 1):
-            qid = f"demo{i}_{str(uuid.uuid4())[:8]}"
-            questions_dict[qid] = q
-            questions_list.append({
-                "id": qid,
-                "question": q["question"],
-                "options": q["options"]
-            })
-
-    # Save quiz session
-    session_id = f"session_{str(uuid.uuid4())}"
-    quiz_sessions[session_id] = {
-        "questions": questions_dict,
-        "user_answers": {}
-    }
-
-    return jsonify({
-        "session_id": session_id,
-        "questions": questions_list
-    })
+        print("❌ Fetch quiz failed:", e)
+        return jsonify({"error": "Failed to fetch quiz."}), 500
 
 @app.route("/answer", methods=["POST"])
 @login_required

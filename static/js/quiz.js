@@ -1,54 +1,60 @@
-document.addEventListener("DOMContentLoaded", function () {
+// static/js/quiz.js
+
+document.addEventListener("DOMContentLoaded", () => {
   console.log("quiz.js loaded ✅");
 
   const startBtn = document.getElementById("start-quiz-btn");
+  if (!startBtn) {
+    console.warn("⚠️ Start button not found");
+    return;
+  }
+  console.log("Start button found ✅");
 
-  if (startBtn) {
-    console.log("Start button found ✅");
+  startBtn.addEventListener("click", async () => {
+    console.log("🎯 Start Quiz button clicked ✅");
 
-    startBtn.addEventListener("click", async function () {
-      console.log("Start Quiz button clicked ✅");
+    const topic = document.getElementById("topic").value;
+    const level = document.getElementById("level").value;
+    const numQuestions = document.getElementById("num_questions").value;
 
-      const topic = document.getElementById("topic").value;
-      const level = document.getElementById("level").value;
-      const numQuestions = document.getElementById("num_questions").value;
+    // ✅ Get CSRF token from hidden input
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
-      if (!topic || !level || !numQuestions) {
-        alert("Please select all fields before starting the quiz.");
+    console.log("Collected values:", { topic, level, numQuestions, csrfToken });
+
+    try {
+      const response = await fetch("/quiz/fetch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({ topic, level, num_questions: numQuestions })
+      });
+
+      console.log("📡 Server response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Fetch failed:", errorText);
+        alert("Failed to fetch quiz: " + errorText);
         return;
       }
 
-      try {
-        const response = await fetch("/quiz/fetch", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            topic: topic,
-            level: level,
-            num_questions: numQuestions,
-          }),
-        });
+      const data = await response.json();
+      console.log("✅ Quiz data received:", data);
 
-        const data = await response.json();
-        console.log("Server response ✅", data);
-
-        if (data.error) {
-          alert("Error: " + data.error);
-          return;
-        }
-
-        renderQuiz(data.questions, data.session_id, topic, level);
-
-      } catch (err) {
-        console.error("Fetch error:", err);
-        alert("Something went wrong while starting the quiz.");
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        alert("No redirect URL in server response!");
       }
-    });
-  } else {
-    console.warn("⚠️ Start button not found on page!");
-  }
+    } catch (error) {
+      console.error("🔥 Fetch error:", error);
+      alert("An error occurred while starting the quiz.");
+    }
+  });
+});
 
   function renderQuiz(questions, sessionId, topic, level) {
     const container = document.querySelector(".quiz-card");
@@ -91,18 +97,19 @@ document.addEventListener("DOMContentLoaded", function () {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "X-CSRFToken": csrf_token  // CSRF token header
           },
           body: JSON.stringify({ answers: answers }),
         });
 
         const result = await response.json();
-        console.log("Quiz submitted ✅", result);
 
         if (result.error) {
           alert("Error: " + result.error);
           return;
         }
 
+        // Show score + explanations
         showResults(result);
 
       } catch (err) {

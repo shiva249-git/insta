@@ -28,7 +28,10 @@
 
   {% if not questions %}
   <!-- Quiz Setup Form -->
-  <form id="quiz-setup-form">
+  <form id="quiz-setup-form" method="POST">
+    <!-- ✅ Hidden CSRF token -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
     <!-- Topic -->
     <div class="mb-3">
       <label for="topic" class="form-label">Select Topic</label>

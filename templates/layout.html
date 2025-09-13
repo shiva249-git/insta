@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Shichan Study Space{% endblock %}</title>
 
+  <!-- CSRF token for JS -->
+  <script>
+     const csrf_token = "{{ csrf_token }}";
+  </script>
+
   <!-- Local Bootstrap CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 
@@ -15,59 +20,20 @@
       min-height: 100vh;
       margin: 0;
     }
-
-    .navbar-brand {
-      font-weight: bold;
-      font-size: 1.8rem;
-      color: #fff !important;
-      text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
-    }
-
-    .navbar-nav .nav-link {
-      color: #fff !important;
-      font-weight: 500;
-      margin-left: 10px;
-    }
-
-    .navbar-nav .nav-link:hover {
-      color: #000 !important;
-    }
-
-    .content {
-      padding: 40px 20px;
-      min-height: 80vh;
-    }
-
-    h2 {
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 30px;
-      color: #333;
-    }
-
-    footer {
-      text-align: center;
-      padding: 15px;
-      background: rgba(255,255,255,0.2);
-      color: #333;
-    }
-
-    .form-control {
-      font-size: 1rem;
-      padding: 10px;
-    }
-
-    .btn-custom {
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
+    .navbar-brand { font-weight: bold; font-size: 1.8rem; color: #fff !important; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); }
+    .navbar-nav .nav-link { color: #fff !important; font-weight: 500; margin-left: 10px; }
+    .navbar-nav .nav-link:hover { color: #000 !important; }
+    .content { padding: 40px 20px; min-height: 80vh; }
+    h2 { font-weight: bold; text-align: center; margin-bottom: 30px; color: #333; }
+    footer { text-align: center; padding: 15px; background: rgba(255,255,255,0.2); color: #333; }
+    .form-control { font-size: 1rem; padding: 10px; }
+    .btn-custom { font-weight: 600; font-size: 1.1rem; }
   </style>
 
   {% block head %}{% endblock %}
 </head>
 <body>
-
-  <!-- Top Navbar -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-transparent px-4">
     <a class="navbar-brand" href="{{ url_for('dashboard') }}">Shichan Study Space</a>
     <div class="collapse navbar-collapse justify-content-end">
@@ -105,7 +71,7 @@
     © {{ now.year }} Shichan Study Space | Powered by Flask
   </footer>
 
-  <!-- ✅ Scripts moved to bottom -->
+  <!-- Scripts -->
   <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
   <script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
   {% block scripts %}{% endblock %}

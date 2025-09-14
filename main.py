@@ -13,6 +13,9 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
 from openai import OpenAI
 from dotenv import load_dotenv
+from flask_migrate import Migrate
+from models import QuizQuestion
+
 
 # ------------------- Load environment -------------------
 load_dotenv()
@@ -35,6 +38,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # ------------------- Extensions -------------------
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 csrf = CSRFProtect(app)
 limiter = Limiter(app=app, key_func=get_remote_address)
 login_manager = LoginManager(app)

@@ -245,7 +245,6 @@ def submit_quiz(session_id):
         "details": details
     })
 
-
 # --- Fetch Quiz ---
 @app.route("/quiz/fetch", methods=["POST"])
 @login_required
@@ -262,15 +261,18 @@ def fetch_quiz():
         questions_dict = {}
         questions_list = []
 
-        # --- Try AI generation ---
+        # --- 1. Try AI Generation ---
         for i in range(num_questions):
             try:
                 question, options, answer, explanation = generate_ssc_question_openai(topic, level)
-                question_id = f"q{i+1}_{str(uuid.uuid4())[:8]}"
+                question_id = f"ai_{i+1}_{str(uuid.uuid4())[:8]}"
+
+                answer_key = answer.strip()[0].upper()  # ensure only "A", "B", etc.
+
                 questions_dict[question_id] = {
                     "question": question,
                     "options": options,
-                    "correct_answer": answer,
+                    "correct_answer": answer_key,
                     "explanation": explanation
                 }
                 questions_list.append({
@@ -280,23 +282,29 @@ def fetch_quiz():
                 })
             except Exception as e:
                 print(f"⚠️ AI failed for question {i+1}: {e}")
-                break  # Stop AI if it fails
+                break  # Stop AI loop if it fails
 
-        # --- Fallback DB questions if AI fails or not enough questions ---
+        # --- 2. Fallback to DB if AI didn’t give enough ---
         if len(questions_list) < num_questions:
-            from your_db_module import get_db_questions  # Replace with your actual DB function
+            from your_db_module import get_db_questions  # 🔹 replace with your actual DB fetch function
             remaining = num_questions - len(questions_list)
             db_questions = get_db_questions(topic, remaining)
+
             for q in db_questions:
                 question_id = f"db_{str(uuid.uuid4())[:8]}"
-                questions_dict[question_id] = q
+                questions_dict[question_id] = {
+                    "question": q["question"],
+                    "options": q["options"],
+                    "correct_answer": q["correct_answer"],  # must be "A", "B", etc.
+                    "explanation": q.get("explanation", "")
+                }
                 questions_list.append({
                     "id": question_id,
                     "question": q["question"],
                     "options": q["options"]
                 })
 
-        # --- Save session ---
+        # --- 3. Save Session ---
         session_id = f"session_{str(uuid.uuid4())}"
         quiz_sessions[session_id] = {"questions": questions_dict, "user_answers": {}}
 
@@ -309,27 +317,44 @@ def fetch_quiz():
 @app.route("/answer", methods=["POST"])
 @login_required
 def check_answer():
-    data = request.get_json()
-    question_id = data.get("question_id")
-    selected_answer = data.get("answer")
-    session_id = data.get("session_id")
-    if not session_id or not question_id or not selected_answer:
-        return jsonify({"error": "Missing parameters."}), 400
+    try:
+        data = request.get_json(force=True)
+        question_id = data.get("question_id")
+        selected_answer = str(data.get("answer", "")).strip().upper()
+        session_id = data.get("session_id")
 
-    session_data = quiz_sessions.get(session_id)
-    if not session_data:
-        return jsonify({"error": "Invalid or expired session ID."}), 400
+        if not session_id or not question_id or not selected_answer:
+            return jsonify({"error": "Missing parameters."}), 400
 
-    question_data = session_data["questions"].get(question_id)
-    if not question_data:
-        return jsonify({"error": "Invalid question ID for this session."}), 400
+        session_data = quiz_sessions.get(session_id)
+        if not session_data:
+            return jsonify({"error": "Invalid or expired session ID."}), 400
 
-    correct_answer = question_data["correct_answer"]
-    explanation = question_data["explanation"]
-    is_correct = (selected_answer.upper() == correct_answer.upper())
-    session_data["user_answers"][question_id] = selected_answer.upper()
+        question_data = session_data["questions"].get(question_id)
+        if not question_data:
+            return jsonify({"error": "Invalid question ID for this session."}), 400
 
-    return jsonify({"result": "correct" if is_correct else "incorrect", "correct_answer": correct_answer, "explanation": explanation})
+        correct_answer = question_data["correct_answer"].strip().upper()
+        explanation = question_data.get("explanation", "")
+
+        # Extra validation: ensure selected is in options
+        if selected_answer not in ["A", "B", "C", "D"][:len(question_data["options"])]:
+            return jsonify({"error": "Invalid answer choice."}), 400
+
+        is_correct = (selected_answer == correct_answer)
+
+        # Save user’s answer
+        session_data["user_answers"][question_id] = selected_answer
+
+        return jsonify({
+            "result": "correct" if is_correct else "incorrect",
+            "selected_answer": selected_answer,
+            "correct_answer": correct_answer,
+            "explanation": explanation
+        })
+    except Exception as e:
+        print("❌ Error in /answer:", e)
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/practice_papers")
 @login_required

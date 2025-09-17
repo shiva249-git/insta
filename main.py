@@ -264,51 +264,69 @@ def fetch_quiz():
         # --- 1. Try AI Generation ---
         for i in range(num_questions):
             try:
-                question, options, answer, explanation = generate_ssc_question_openai(topic, level)
-                question_id = f"ai_{i+1}_{str(uuid.uuid4())[:8]}"
+                q, options, answer, explanation = generate_ssc_question_openai(topic, level)
+                question_id = f"ai_{i+1}_{uuid.uuid4().hex[:8]}"
 
-                answer_key = answer.strip()[0].upper()  # ensure only "A", "B", etc.
+                # normalize answer to just "A", "B", etc.
+                answer_key = answer.strip().upper()[0]
 
                 questions_dict[question_id] = {
-                    "question": question,
+                    "question": q,
                     "options": options,
                     "correct_answer": answer_key,
-                    "explanation": explanation
+                    "explanation": explanation or ""
                 }
                 questions_list.append({
                     "id": question_id,
-                    "question": question,
+                    "question": q,
                     "options": options
                 })
             except Exception as e:
                 print(f"⚠️ AI failed for question {i+1}: {e}")
-                break  # Stop AI loop if it fails
+                break  # fallback to DB
 
         # --- 2. Fallback to DB if AI didn’t give enough ---
         if len(questions_list) < num_questions:
-            from your_db_module import get_db_questions  # 🔹 replace with your actual DB fetch function
-            remaining = num_questions - len(questions_list)
-            db_questions = get_db_questions(topic, remaining)
+            try:
+                from your_db_module import get_db_questions  # replace with your actual DB function
+                remaining = num_questions - len(questions_list)
+                db_questions = get_db_questions(topic, remaining)
 
-            for q in db_questions:
-                question_id = f"db_{str(uuid.uuid4())[:8]}"
-                questions_dict[question_id] = {
-                    "question": q["question"],
-                    "options": q["options"],
-                    "correct_answer": q["correct_answer"],  # must be "A", "B", etc.
-                    "explanation": q.get("explanation", "")
-                }
-                questions_list.append({
-                    "id": question_id,
-                    "question": q["question"],
-                    "options": q["options"]
-                })
+                for q in db_questions:
+                    question_id = f"db_{uuid.uuid4().hex[:8]}"
+                    questions_dict[question_id] = {
+                        "question": q["question"],
+                        "options": q["options"],
+                        "correct_answer": q["correct_answer"].strip().upper()[0],
+                        "explanation": q.get("explanation", "")
+                    }
+                    questions_list.append({
+                        "id": question_id,
+                        "question": q["question"],
+                        "options": q["options"]
+                    })
+            except Exception as e:
+                print(f"⚠️ DB fallback failed: {e}")
 
-        # --- 3. Save Session ---
-        session_id = f"session_{str(uuid.uuid4())}"
-        quiz_sessions[session_id] = {"questions": questions_dict, "user_answers": {}}
+        # --- 3. If still no questions ---
+        if not questions_list:
+            return jsonify({"error": "No questions could be generated."}), 500
 
-        return jsonify({"session_id": session_id, "questions": questions_list})
+        # --- 4. Save Session ---
+        session_id = f"session_{uuid.uuid4()}"
+        quiz_sessions[session_id] = {
+            "topic": topic,
+            "level": level,
+            "questions": questions_dict,
+            "user_answers": {}
+        }
+
+        return jsonify({
+            "session_id": session_id,
+            "questions": questions_list,
+            "topic": topic,
+            "level": level
+        })
 
     except Exception as e:
         print("❌ Fetch quiz failed:", e)

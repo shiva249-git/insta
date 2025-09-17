@@ -5,10 +5,11 @@
 <div class="quiz-card mx-auto mt-5 p-4 rounded shadow-lg">
 
   {% if not questions %}
-    <!-- Quiz Setup Form -->
-    <h2 class="mb-4 text-center text-info fw-bold">Choose Quiz Settings</h2>
+    <h2 class="mb-4 text-center text-info">Choose Quiz Settings</h2>
     <form id="quiz-setup-form">
-      <!-- Topic -->
+      <!-- Fixed CSRF -->
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
       <div class="mb-3">
         <label for="topic" class="form-label">Select Topic</label>
         <select class="form-select" id="topic" required>
@@ -21,7 +22,6 @@
         </select>
       </div>
 
-      <!-- Level -->
       <div class="mb-3">
         <label for="level" class="form-label">Difficulty Level</label>
         <select class="form-select" id="level" required>
@@ -32,7 +32,6 @@
         </select>
       </div>
 
-      <!-- Number of Questions -->
       <div class="mb-3">
         <label for="num_questions" class="form-label">Number of Questions</label>
         <input type="number" class="form-control" id="num_questions" min="1" max="20" value="5" required>
@@ -45,10 +44,10 @@
   {% endif %}
 
   {% if questions %}
-    <!-- Quiz Questions -->
-    <h3 class="mt-4 mb-4 text-center text-info fw-bold">Quiz on {{ topic }} ({{ level }})</h3>
+    <!-- Server-rendered fallback -->
+    <h3 class="mt-4 mb-4 text-center text-info">Quiz on {{ topic }} ({{ level }})</h3>
     <form method="POST" action="{{ url_for('submit_quiz') }}">
-      {{ csrf_token() }}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       {% for q in questions %}
         <div class="mb-4">
           <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
@@ -64,7 +63,7 @@
             </div>
           {% endfor %}
         </div>
-        <hr class="border-secondary">
+        <hr>
       {% endfor %}
       <div class="d-grid">
         <button type="submit" class="btn btn-success btn-lg">Submit Answers</button>
@@ -78,7 +77,7 @@
 {% block head %}
 <style>
   body {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
+    background: linear-gradient(135deg, #1e293b, #0f172a);
     color: #f8fafc;
   }
   .quiz-card {
@@ -90,12 +89,8 @@
   .form-check-label {
     color: #f1f5f9;
   }
-  .form-label {
-    font-weight: 500;
-  }
 </style>
-{% endblock %}
 
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
+<!-- Make sure your quiz.js handles DOMContentLoaded -->
+<script src="{{ url_for('static', filename='quiz.js') }}"></script>
 {% endblock %}

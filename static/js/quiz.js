@@ -1,24 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.getElementById("start-quiz-btn");
   if (!startBtn) {
-    console.warn("⚠️ Start button not found (not on quiz page)");
+    console.warn("⚠️ Start button not found");
     return;
   }
 
-  startBtn.addEventListener("click", () => {
-    console.log("✅ Start Quiz Clicked");
-    // your fetch call logic here
-  });
-});
-
+  startBtn.addEventListener("click", async () => {
     const topic = document.getElementById("topic").value;
     const level = document.getElementById("level").value;
     const numQuestions = document.getElementById("num_questions").value;
+    const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+    const csrfToken = csrfTokenInput ? csrfTokenInput.value : "";
 
-    // ✅ Get CSRF token from hidden input
-    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-    console.log("Collected values:", { topic, level, numQuestions, csrfToken });
+    if (!topic || !level || !numQuestions) {
+      alert("Please fill all fields");
+      return;
+    }
 
     try {
       const response = await fetch("/quiz/fetch", {
@@ -30,36 +27,22 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ topic, level, num_questions: numQuestions })
       });
 
-      console.log("📡 Server response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Fetch failed:", errorText);
-        alert("Failed to fetch quiz: " + errorText);
-        return;
-      }
-
       const data = await response.json();
-      console.log("✅ Quiz data received:", data);
 
-      if (data.questions && data.session_id) {
+      if (response.ok && data.questions && data.session_id) {
         renderQuiz(data.questions, data.session_id, topic, level, csrfToken);
-      } else if (data.redirect_url) {
-        // fallback for redirect case
-        window.location.href = data.redirect_url;
       } else {
-        alert("⚠️ Server response missing quiz data");
+        alert(data.error || "Failed to fetch quiz");
       }
-    } catch (error) {
-      console.error("❌ Fetch error:", error);
-      alert("An error occurred while starting the quiz.");
+
+    } catch (err) {
+      console.error("Fetch error:", err);
+      alert("Error starting quiz");
     }
   });
 });
 
-/**
- * Render Quiz
- */
+// --- Render Quiz ---
 function renderQuiz(questions, sessionId, topic, level, csrfToken) {
   const container = document.querySelector(".quiz-card");
   container.innerHTML = `
@@ -86,33 +69,21 @@ function renderQuiz(questions, sessionId, topic, level, csrfToken) {
     </form>
   `;
 
-  // Handle submit
-  document.getElementById("quiz-form").addEventListener("submit", async function (e) {
+  document.getElementById("quiz-form").addEventListener("submit", async function(e) {
     e.preventDefault();
-
     const formData = new FormData(this);
     const answers = {};
-    formData.forEach((val, key) => {
-      answers[key] = val;
-    });
+    formData.forEach((val, key) => answers[key] = val);
 
     try {
       const response = await fetch(`/quiz/submit/${sessionId}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken   // ✅ correct CSRF token
-        },
-        body: JSON.stringify({ answers }),
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+        body: JSON.stringify({ answers })
       });
 
       const result = await response.json();
-
-      if (result.error) {
-        alert("Error: " + result.error);
-        return;
-      }
-
+      if (result.error) { alert("Error: " + result.error); return; }
       showResults(result);
 
     } catch (err) {
@@ -122,9 +93,7 @@ function renderQuiz(questions, sessionId, topic, level, csrfToken) {
   });
 }
 
-/**
- * Show Results
- */
+// --- Show Results ---
 function showResults(result) {
   const container = document.querySelector(".quiz-card");
   container.innerHTML = `

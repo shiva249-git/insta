@@ -5,23 +5,25 @@
 <div class="quiz-card mx-auto mt-5 p-4 rounded shadow-lg">
 
   {% if not questions %}
-    <h2 class="mb-4 text-center text-info">Choose Quiz Settings</h2>
+    <!-- Quiz Setup Form -->
+    <h2 class="mb-4 text-center quiz-title">Choose Quiz Settings</h2>
     <form id="quiz-setup-form">
-      <!-- Fixed CSRF -->
+      <!-- Hidden CSRF Token -->
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
+      <!-- Topic -->
       <div class="mb-3">
         <label for="topic" class="form-label">Select Topic</label>
         <select class="form-select" id="topic" required>
           <option value="" disabled selected>-- Choose Topic --</option>
-          {% for t in [
-            "General Knowledge", "Polity", "History", "Geography", "Economics",
-            "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
+          {% for t in ["General Knowledge", "Polity", "History", "Geography", "Economics",
+                       "Science", "Mathematics", "Current Affairs", "Reasoning", "English"] %}
             <option value="{{ t }}">{{ t }}</option>
           {% endfor %}
         </select>
       </div>
 
+      <!-- Level -->
       <div class="mb-3">
         <label for="level" class="form-label">Difficulty Level</label>
         <select class="form-select" id="level" required>
@@ -32,6 +34,7 @@
         </select>
       </div>
 
+      <!-- Number of Questions -->
       <div class="mb-3">
         <label for="num_questions" class="form-label">Number of Questions</label>
         <input type="number" class="form-control" id="num_questions" min="1" max="20" value="5" required>
@@ -44,10 +47,10 @@
   {% endif %}
 
   {% if questions %}
-    <!-- Server-rendered fallback -->
-    <h3 class="mt-4 mb-4 text-center text-info">Quiz on {{ topic }} ({{ level }})</h3>
+    <!-- Quiz Questions -->
+    <h3 class="mt-4 mb-4 text-center quiz-title">Quiz on {{ topic }} ({{ level }})</h3>
     <form method="POST" action="{{ url_for('submit_quiz') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {{ csrf_token() }}
       {% for q in questions %}
         <div class="mb-4">
           <p><strong>Q{{ loop.index }}:</strong> {{ q.question }}</p>
@@ -76,21 +79,17 @@
 
 {% block head %}
 <style>
-  body {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    color: #f8fafc;
+  .quiz-title {
+    transition: color 0.5s, text-shadow 0.5s;
+    color: var(--highlight-color);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
   }
-  .quiz-card {
-    max-width: 750px;
-    background: #1e293b;
-    color: #f1f5f9;
-    border-radius: 16px;
-  }
-  .form-check-label {
-    color: #f1f5f9;
+
+  body.dark-mode .quiz-title {
+    color: var(--highlight-dark);
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
   }
 </style>
-
 <!-- Make sure your quiz.js handles DOMContentLoaded -->
 <script src="{{ url_for('static', filename='quiz.js') }}"></script>
 {% endblock %}

@@ -6,7 +6,7 @@
 
   {% if not questions %}
     <!-- Quiz Setup Form -->
-    <h2 class="mb-4 text-center text-info">Choose Quiz Settings</h2>
+    <h2 class="mb-4 text-center text-info fw-bold">Choose Quiz Settings</h2>
     <form id="quiz-setup-form">
       <!-- Topic -->
       <div class="mb-3">
@@ -46,7 +46,7 @@
 
   {% if questions %}
     <!-- Quiz Questions -->
-    <h3 class="mt-4 mb-4 text-center text-info">Quiz on {{ topic }} ({{ level }})</h3>
+    <h3 class="mt-4 mb-4 text-center text-info fw-bold">Quiz on {{ topic }} ({{ level }})</h3>
     <form method="POST" action="{{ url_for('submit_quiz') }}">
       {{ csrf_token() }}
       {% for q in questions %}
@@ -64,7 +64,7 @@
             </div>
           {% endfor %}
         </div>
-        <hr>
+        <hr class="border-secondary">
       {% endfor %}
       <div class="d-grid">
         <button type="submit" class="btn btn-success btn-lg">Submit Answers</button>
@@ -78,7 +78,7 @@
 {% block head %}
 <style>
   body {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
+    background: linear-gradient(135deg, #0f172a, #1e293b);
     color: #f8fafc;
   }
   .quiz-card {
@@ -90,41 +90,12 @@
   .form-check-label {
     color: #f1f5f9;
   }
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const startBtn = document.getElementById("start-quiz-btn");
-  if (startBtn) {
-    startBtn.addEventListener("click", async () => {
-      const topic = document.getElementById("topic").value;
-      const level = document.getElementById("level").value;
-      const num_questions = document.getElementById("num_questions").value;
-
-      if (!topic || !level || !num_questions) {
-        alert("Please fill all fields.");
-        return;
-      }
-
-      try {
-        const response = await fetch("/quiz/fetch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic, level, num_questions })
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-          window.location.href = `/quiz/session/${data.session_id}`;
-        } else {
-          alert(data.error || "Failed to fetch quiz.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error fetching quiz.");
-      }
-    });
+  .form-label {
+    font-weight: 500;
   }
-});
-</script>
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quiz.js') }}"></script>
 {% endblock %}

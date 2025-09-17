@@ -1,15 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("quiz.js loaded ✅");
-
   const startBtn = document.getElementById("start-quiz-btn");
   if (!startBtn) {
-    console.warn("⚠️ Start button not found");
+    console.warn("⚠️ Start button not found (not on quiz page)");
     return;
   }
-  console.log("Start button found ✅");
 
-  startBtn.addEventListener("click", async () => {
-    console.log("▶️ Start Quiz button clicked");
+  startBtn.addEventListener("click", () => {
+    console.log("✅ Start Quiz Clicked");
+    // your fetch call logic here
+  });
+});
 
     const topic = document.getElementById("topic").value;
     const level = document.getElementById("level").value;
